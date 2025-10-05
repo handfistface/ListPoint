@@ -73,8 +73,8 @@
 
     <div class="card p-6 rounded-lg">
         <div id="items-list" class="space-y-2">
-            {% if current_list.items %}
-                {% for item in current_list.items %}
+            {% if current_list['items'] %}
+                {% for item in current_list['items'] %}
                     <div class="flex items-center justify-between p-3 rounded hover:bg-opacity-50" style="background-color: var(--bg-primary);" data-item-id="{{ item._id }}">
                         <span>{{ item.text }}</span>
                         {% if is_owner %}
