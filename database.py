@@ -130,15 +130,97 @@ class Database:
             }
         )
     
-    def restore_ethereal_list(self, list_id):
+    def restore_ethereal_list(self, list_id, reset_checked_only=False):
         list_doc = self.get_list_by_id(list_id)
         if not list_doc or not list_doc.get('is_ethereal'):
             return False
         
-        original_items = list_doc.get('original_items', [])
+        if reset_checked_only:
+            items = list_doc.get('items', [])
+            for item in items:
+                item['checked'] = False
+            self.db.lists.update_one(
+                {'_id': ObjectId(list_id)},
+                {'$set': {'items': items, 'updated_at': datetime.utcnow()}}
+            )
+        else:
+            original_items = list_doc.get('original_items', [])
+            unchecked_items = []
+            for item in original_items:
+                item_copy = item.copy()
+                item_copy['checked'] = False
+                unchecked_items.append(item_copy)
+            self.db.lists.update_one(
+                {'_id': ObjectId(list_id)},
+                {'$set': {'items': unchecked_items, 'updated_at': datetime.utcnow()}}
+            )
+        return True
+    
+    def toggle_item_checked(self, list_id, item_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                item['checked'] = not item.get('checked', False)
+                break
+        
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
-            {'$set': {'items': original_items, 'updated_at': datetime.utcnow()}}
+            {'$set': {'items': items, 'updated_at': datetime.utcnow()}}
+        )
+        return True, 'Item toggled'
+    
+    def add_item_to_original(self, list_id, item_text):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc or not list_doc.get('is_ethereal'):
+            return False, 'Not an ethereal list'
+        
+        original_items = list_doc.get('original_items', [])
+        for item in original_items:
+            if item['text'].lower() == item_text.lower():
+                return False, 'Item already exists'
+        
+        new_item = {
+            '_id': ObjectId(),
+            'text': item_text,
+            'checked': False,
+            'added_at': datetime.utcnow()
+        }
+        
+        original_items.append(new_item)
+        sorted_original = sorted(original_items, key=lambda x: x['text'].lower())
+        
+        items = list_doc.get('items', [])
+        items.append(new_item.copy())
+        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {
+                'original_items': sorted_original,
+                'items': sorted_items,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        return True, 'Item added to original'
+    
+    def remove_item_from_original(self, list_id, item_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc or not list_doc.get('is_ethereal'):
+            return False
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {
+                '$pull': {
+                    'original_items': {'_id': ObjectId(item_id)},
+                    'items': {'_id': ObjectId(item_id)}
+                },
+                '$set': {'updated_at': datetime.utcnow()}
+            }
         )
         return True
     
