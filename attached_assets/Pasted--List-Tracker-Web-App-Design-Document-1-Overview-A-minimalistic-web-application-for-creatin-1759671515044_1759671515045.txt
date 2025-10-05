@@ -1,0 +1,951 @@
+# List Tracker Web App - Design Document
+
+## 1. Overview
+
+A minimalistic web application for creating, managing, and sharing lists with social features. Users can create private or public lists, discover others’ lists, and organize them with tags. Features automatic alphabetical sorting and ethereal lists for reusable templates.
+
+## 2. Core Features
+
+### 2.1 User System
+
+**Authentication Levels:**
+
+- **Anonymous Users**: Can browse and view public lists only
+- **Authenticated Users**: Full access to create, manage, and favorite lists
+
+**Account Features:**
+
+- Simple registration/login system
+- User profile with owned lists
+- Personal and favorited lists distinction
+
+### 2.2 List Management
+
+**List Properties:**
+
+- Name (required)
+- Thumbnail image (optional, small file size limit ~500KB)
+- Visibility (public/private)
+- Tags (multiple)
+- Creation timestamp
+- Owner reference
+- Items array
+- **Ethereal flag** (boolean)
+- **Original items snapshot** (for ethereal lists only)
+
+**List Types:**
+
+*Standard Lists:*
+
+- Items can be added and deleted permanently
+- Items automatically sort alphabetically on addition
+
+*Ethereal Lists:*
+
+- Template-style lists for reusable purposes
+- Can delete items during use (checked off items)
+- “Restore to Original” button resets list to initial state
+- Use cases: packing lists, morning checklists, recurring tasks
+- Original state preserved in database
+
+**List Operations:**
+
+- Create new list (choose standard or ethereal)
+- Edit list properties
+- Delete list (with confirmation)
+- Toggle visibility (public/private)
+- **Restore ethereal list to original state**
+
+### 2.3 Item Management
+
+**Item Features:**
+
+- Free-text input for adding items
+- **Automatic alphabetical sorting** on item addition
+- Click-to-delete functionality
+- Auto-suggest from previously typed items (across all user’s lists)
+- Timestamp for each item
+- **Success/failure modal feedback** on add operations
+
+**Adding Items:**
+
+1. User types item and submits
+1. Item is validated and added to list
+1. List automatically re-sorts alphabetically
+1. Brief modal appears:
+
+- Success: “Item added successfully” (green, 2 seconds)
+- Failure: “Item failed to be added to list” (red, 3 seconds with reason)
+
+**Alphabetical Sorting:**
+
+- Case-insensitive sorting
+- Numbers sort before letters
+- Special characters sort before alphanumeric
+- Instant re-render after addition
+
+**Undo System:**
+
+- Stack-based undo for deleted items
+- Maximum 10 items in undo stack
+- Per-list undo history
+- Visual indicator when undo is available
+- Undo maintains alphabetical order
+
+**Ethereal List Behavior:**
+
+- Items can be deleted during use (temporary removal)
+- Deleted items don’t trigger traditional undo
+- “Restore to Original” button brings back all original items
+- Visual indicator that list is ethereal
+
+### 2.4 Discovery & Social
+
+**Exploration:**
+
+- Browse public lists from all users
+- Search by list name
+- Filter by tags
+- Favorite public lists from other users
+
+**Favoriting:**
+
+- One-click favorite/unfavorite
+- Favorites appear on landing page
+- Visual distinction between owned and favorited lists
+
+### 2.5 UI/UX
+
+**Theme System:**
+
+- Dark mode (default)
+- Light mode
+- Easy toggle switch (persistent preference)
+
+**Design Principles:**
+
+- Minimalistic interface
+- Clean typography
+- Generous whitespace
+- Intuitive navigation
+- Mobile-responsive design
+
+**Modal Feedback:**
+
+- Non-intrusive notification modals
+- Auto-dismiss after timeout
+- Subtle animations
+
+## 3. Technical Architecture
+
+### 3.1 Frontend Stack
+
+**Technologies:**
+
+- **Jinja2 templating** (integrated with Flask)
+- Vanilla JavaScript for interactivity
+- TailwindCSS or custom CSS for styling
+- Fetch API for AJAX calls
+- LocalStorage for theme preference and client-side caching
+
+**Key JavaScript Modules:**
+
+- Modal management
+- Auto-complete functionality
+- Real-time sorting
+- Theme toggling
+- Form validation
+
+### 3.2 Backend Stack
+
+**Technologies:**
+
+- **Python 3.9+**
+- **Flask** web framework
+- Flask-Login for authentication
+- Flask-WTF for form handling
+- Werkzeug for password hashing
+- PyMongo for MongoDB interaction
+- Pillow for image processing
+- python-dotenv for configuration
+
+**Flask Extensions:**
+
+- Flask-Login - Session management
+- Flask-WTF - CSRF protection
+- Flask-Cors - CORS handling (if needed)
+- Flask-Limiter - Rate limiting
+
+### 3.3 Database (MongoDB)
+
+**Collections:**
+
+**users**
+
+```python
+{
+  "_id": ObjectId,
+  "email": str,  # unique, indexed
+  "password_hash": str,
+  "username": str,  # unique, indexed
+  "created_at": datetime,
+  "preferences": {
+    "theme": str  # 'dark' or 'light'
+  }
+}
+```
+
+**lists**
+
+```python
+{
+  "_id": ObjectId,
+  "name": str,  # indexed
+  "owner_id": ObjectId,  # indexed
+  "thumbnail_url": str,
+  "is_public": bool,  # indexed
+  "is_ethereal": bool,  # indexed
+  "tags": [str],  # indexed
+  "items": [
+    {
+      "_id": ObjectId,
+      "text": str,
+      "added_at": datetime
+    }
+  ],
+  "original_items": [  # Only for ethereal lists
+    {
+      "_id": ObjectId,
+      "text": str,
+      "added_at": datetime
+    }
+  ],
+  "created_at": datetime,
+  "updated_at": datetime
+}
+```
+
+**favorites**
+
+```python
+{
+  "_id": ObjectId,
+  "user_id": ObjectId,  # indexed
+  "list_id": ObjectId,  # indexed
+  "created_at": datetime
+}
+# Compound index on (user_id, list_id) for uniqueness
+```
+
+**autocomplete_cache**
+
+```python
+{
+  "_id": ObjectId,
+  "user_id": ObjectId,  # indexed
+  "item_text": str,  # indexed
+  "last_used": datetime,
+  "frequency": int
+}
+```
+
+## 4. User Flows
+
+### 4.1 Landing Page (Authenticated User)
+
+```
+┌─────────────────────────────────────┐
+│  [Logo]  List Tracker    [🌙] [User]│
+├─────────────────────────────────────┤
+│                                     │
+│  My Lists                    [+ New]│
+│  ┌────┐ ┌────┐ ┌────┐             │
+│  │ 🖼 │ │ 🖼 │ │ 🖼 │             │
+│  │    │ │ ✨ │ │    │   (✨ = ethereal)
+│  └────┘ └────┘ └────┘             │
+│  Name1   Name2   Name3             │
+│                                     │
+│  Favorited Lists                    │
+│  ┌────┐ ┌────┐                     │
+│  │ 🖼 │ │ 🖼 │                     │
+│  └────┘ └────┘                     │
+│  Name4★  Name5★                    │
+│                                     │
+│  [Explore Public Lists]             │
+└─────────────────────────────────────┘
+```
+
+### 4.2 List View (Standard List)
+
+```
+┌─────────────────────────────────────┐
+│  ← Back    [List Name]    [Edit] [🗑]│
+│  #tag1 #tag2                        │
+├─────────────────────────────────────┤
+│                                     │
+│  [Type to add item...]     [Undo ↶] │
+│  ↓ Suggestions appear here          │
+│                                     │
+│  ☐ Apple                       [×]  │
+│  ☐ Banana                      [×]  │
+│  ☐ Cherry                      [×]  │
+│                (alphabetically sorted)
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### 4.3 List View (Ethereal List)
+
+```
+┌─────────────────────────────────────┐
+│  ← Back  [List Name] ✨  [Edit] [🗑] │
+│  #tag1 #tag2                        │
+│  [🔄 Restore to Original]           │
+├─────────────────────────────────────┤
+│                                     │
+│  [Type to add item...]              │
+│  ↓ Suggestions appear here          │
+│                                     │
+│  ☐ Clothes                     [×]  │
+│  ☐ Passport                    [×]  │
+│  ☐ Toothbrush                  [×]  │
+│                                     │
+│  (Items restore when you click 🔄)  │
+└─────────────────────────────────────┘
+```
+
+### 4.4 Add Item Modal (Success)
+
+```
+┌─────────────────────────────────────┐
+│         ✓ Item added successfully   │
+└─────────────────────────────────────┘
+     (Auto-dismisses after 2 seconds)
+```
+
+### 4.5 Add Item Modal (Failure)
+
+```
+┌─────────────────────────────────────┐
+│   ✗ Item failed to be added to list │
+│      (Item already exists)          │
+└─────────────────────────────────────┘
+     (Auto-dismisses after 3 seconds)
+```
+
+### 4.6 Explore Page
+
+```
+┌─────────────────────────────────────┐
+│  [Search lists...]                  │
+│  [#tag] [#tag] [#tag] [#tag]       │
+├─────────────────────────────────────┤
+│                                     │
+│  ┌────────────────────┐            │
+│  │ 🖼  List Name   [★] │            │
+│  │ #tag1 #tag2        │            │
+│  │ by @username       │            │
+│  └────────────────────┘            │
+│                                     │
+│  ┌────────────────────┐            │
+│  │ 🖼  List Name ✨[☆] │            │
+│  │ #tag3              │            │
+│  │ by @username       │            │
+│  └────────────────────┘            │
+└─────────────────────────────────────┘
+```
+
+## 5. Key Interactions
+
+### 5.1 Adding Items with Autocomplete and Sorting
+
+1. User types in input field
+1. After 2+ characters, query autocomplete_cache for matches
+1. Display dropdown with matching suggestions
+1. User can click suggestion or continue typing
+1. On Enter/Submit:
+
+- Validate item (check for duplicates)
+- Add item to list in database
+- Sort items alphabetically (case-insensitive)
+- Show success modal if successful
+- Show failure modal with reason if failed
+
+1. Update autocomplete_cache with new item
+1. Re-render list with new sorted order
+
+### 5.2 Alphabetical Sorting Logic
+
+```python
+def sort_items_alphabetically(items):
+    """
+    Sort items alphabetically, case-insensitive
+    Numbers before letters, special chars before alphanumeric
+    """
+    return sorted(items, key=lambda x: x['text'].lower())
+```
+
+### 5.3 Ethereal List Restoration
+
+1. User clicks “Restore to Original” button
+1. Confirmation modal: “Restore list to original items? Current items will be replaced.”
+1. On confirm:
+
+- Copy `original_items` to `items`
+- Save to database
+- Re-render list
+- Show success modal: “List restored successfully”
+
+1. Items appear in original alphabetical order
+
+### 5.4 Creating an Ethereal List
+
+1. User clicks “+ New” to create list
+1. Form includes checkbox: “Make this an ethereal list”
+1. Helper text: “Ethereal lists can be restored to their original state”
+1. On save:
+
+- Set `is_ethereal: true`
+- Copy initial `items` to `original_items`
+- Store in database
+
+### 5.5 Delete with Confirmation
+
+1. User clicks delete icon on list of lists
+1. Enter “Delete Mode” - show confirmation UI
+1. Delete button becomes red with “Confirm Delete?”
+1. Cancel or confirm action
+1. On confirm, delete list and remove from database
+
+### 5.6 Undo System
+
+1. When item deleted, push to local undo stack (max 10)
+1. Show undo button with count
+1. On undo click, pop from stack and re-add item
+1. List re-sorts alphabetically after undo
+1. Stack clears when navigating away from list
+
+## 6. Flask Application Structure
+
+```
+list_tracker/
+├── app.py                    # Main Flask application
+├── config.py                 # Configuration settings
+├── requirements.txt          # Python dependencies
+├── .env                      # Environment variables
+├── models/
+│   ├── __init__.py
+│   ├── user.py              # User model
+│   ├── list.py              # List model
+│   └── favorite.py          # Favorite model
+├── routes/
+│   ├── __init__.py
+│   ├── auth.py              # Authentication routes
+│   ├── lists.py             # List CRUD routes
+│   ├── items.py             # Item operations
+│   └── explore.py           # Public list exploration
+├── utils/
+│   ├── __init__.py
+│   ├── db.py                # MongoDB connection
+│   ├── validators.py        # Input validation
+│   ├── image_handler.py     # Image upload/processing
+│   └── sorting.py           # Alphabetical sorting logic
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   ├── main.js
+│   │   ├── autocomplete.js
+│   │   ├── modal.js
+│   │   └── theme.js
+│   └── uploads/
+│       └── thumbnails/
+└── templates/
+    ├── base.html            # Base template
+    ├── index.html           # Landing page
+    ├── auth/
+    │   ├── login.html
+    │   └── register.html
+    ├── lists/
+    │   ├── list_view.html
+    │   ├── create.html
+    │   └── edit.html
+    ├── explore.html
+    └── components/
+        ├── modal.html
+        ├── list_card.html
+        └── navbar.html
+```
+
+## 7. API Routes (Flask)
+
+### Authentication
+
+- `GET /login` - Login page
+- `POST /login` - Process login
+- `GET /register` - Registration page
+- `POST /register` - Process registration
+- `GET /logout` - Logout
+
+### Lists
+
+- `GET /` - Landing page (user’s lists + favorites)
+- `GET /lists/new` - New list form
+- `POST /lists` - Create new list
+- `GET /lists/<list_id>` - View specific list
+- `GET /lists/<list_id>/edit` - Edit list form
+- `POST /lists/<list_id>/update` - Update list
+- `POST /lists/<list_id>/delete` - Delete list
+- `POST /lists/<list_id>/thumbnail` - Upload thumbnail
+- `POST /lists/<list_id>/restore` - **Restore ethereal list**
+
+### Items
+
+- `POST /lists/<list_id>/items` - Add item (returns JSON with success/failure)
+- `DELETE /lists/<list_id>/items/<item_id>` - Remove item
+- `GET /autocomplete` - Get autocomplete suggestions (AJAX)
+
+### Favorites
+
+- `POST /favorites/<list_id>` - Favorite a list
+- `DELETE /favorites/<list_id>` - Unfavorite a list
+
+### Exploration
+
+- `GET /explore` - Browse public lists
+- `GET /explore/search` - Search lists (AJAX)
+- `GET /explore/tags/<tag>` - Filter by tag
+
+## 8. Key Flask Code Examples
+
+### 8.1 Adding Item with Sorting (Flask Route)
+
+```python
+from flask import jsonify, request
+from utils.sorting import sort_items_alphabetically
+
+@app.route('/lists/<list_id>/items', methods=['POST'])
+@login_required
+def add_item(list_id):
+    item_text = request.json.get('text', '').strip()
+    
+    # Validation
+    if not item_text:
+        return jsonify({
+            'success': False,
+            'message': 'Item text cannot be empty'
+        }), 400
+    
+    # Get list
+    list_doc = db.lists.find_one({
+        '_id': ObjectId(list_id),
+        'owner_id': current_user.id
+    })
+    
+    if not list_doc:
+        return jsonify({
+            'success': False,
+            'message': 'List not found'
+        }), 404
+    
+    # Check for duplicates
+    if any(item['text'].lower() == item_text.lower() 
+           for item in list_doc['items']):
+        return jsonify({
+            'success': False,
+            'message': 'Item already exists'
+        }), 400
+    
+    # Create new item
+    new_item = {
+        '_id': ObjectId(),
+        'text': item_text,
+        'added_at': datetime.utcnow()
+    }
+    
+    # Add and sort
+    list_doc['items'].append(new_item)
+    sorted_items = sort_items_alphabetically(list_doc['items'])
+    
+    # Update database
+    db.lists.update_one(
+        {'_id': ObjectId(list_id)},
+        {
+            '$set': {
+                'items': sorted_items,
+                'updated_at': datetime.utcnow()
+            }
+        }
+    )
+    
+    # Update autocomplete cache
+    update_autocomplete_cache(current_user.id, item_text)
+    
+    return jsonify({
+        'success': True,
+        'message': 'Item added successfully',
+        'items': sorted_items
+    }), 200
+```
+
+### 8.2 Restore Ethereal List (Flask Route)
+
+```python
+@app.route('/lists/<list_id>/restore', methods=['POST'])
+@login_required
+def restore_ethereal_list(list_id):
+    list_doc = db.lists.find_one({
+        '_id': ObjectId(list_id),
+        'owner_id': current_user.id,
+        'is_ethereal': True
+    })
+    
+    if not list_doc:
+        return jsonify({
+            'success': False,
+            'message': 'Ethereal list not found'
+        }), 404
+    
+    # Restore original items
+    original_items = list_doc.get('original_items', [])
+    
+    db.lists.update_one(
+        {'_id': ObjectId(list_id)},
+        {
+            '$set': {
+                'items': original_items.copy(),
+                'updated_at': datetime.utcnow()
+            }
+        }
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'List restored successfully',
+        'items': original_items
+    }), 200
+```
+
+### 8.3 Sorting Utility
+
+```python
+# utils/sorting.py
+
+def sort_items_alphabetically(items):
+    """
+    Sort items alphabetically by text, case-insensitive.
+    Maintains MongoDB document structure.
+    """
+    return sorted(items, key=lambda x: x['text'].lower())
+```
+
+## 9. Frontend JavaScript (Jinja Integration)
+
+### 9.1 Modal Management
+
+```javascript
+// static/js/modal.js
+
+function showModal(message, isSuccess) {
+    const modal = document.createElement('div');
+    modal.className = `modal ${isSuccess ? 'success' : 'error'}`;
+    modal.innerHTML = `
+        <span class="modal-icon">${isSuccess ? '✓' : '✗'}</span>
+        ${message}
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Auto-dismiss
+    setTimeout(() => {
+        modal.classList.add('fade-out');
+        setTimeout(() => modal.remove(), 300);
+    }, isSuccess ? 2000 : 3000);
+}
+```
+
+### 9.2 Add Item with AJAX
+
+```javascript
+// static/js/main.js
+
+async function addItem(listId, itemText) {
+    try {
+        const response = await fetch(`/lists/${listId}/items`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: itemText })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showModal('Item added successfully', true);
+            // Re-render sorted items
+            renderItems(data.items);
+            // Clear input
+            document.getElementById('item-input').value = '';
+        } else {
+            showModal(`Item failed to be added to list\n(${data.message})`, false);
+        }
+    } catch (error) {
+        showModal('Item failed to be added to list\n(Network error)', false);
+    }
+}
+```
+
+### 9.3 Restore Ethereal List
+
+```javascript
+async function restoreEtherealList(listId) {
+    if (!confirm('Restore list to original items? Current items will be replaced.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/lists/${listId}/restore`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showModal('List restored successfully', true);
+            renderItems(data.items);
+        } else {
+            showModal('Failed to restore list', false);
+        }
+    } catch (error) {
+        showModal('Failed to restore list\n(Network error)', false);
+    }
+}
+```
+
+## 10. Jinja Templates
+
+### 10.1 List View Template
+
+```html
+<!-- templates/lists/list_view.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="list-header">
+    <a href="/" class="back-button">← Back</a>
+    <h1>
+        {{ list.name }}
+        {% if list.is_ethereal %}
+        <span class="ethereal-badge" title="Ethereal List">✨</span>
+        {% endif %}
+    </h1>
+    <div class="actions">
+        <a href="{{ url_for('edit_list', list_id=list._id) }}" class="btn">Edit</a>
+        <button onclick="deleteList('{{ list._id }}')" class="btn btn-danger">🗑</button>
+    </div>
+</div>
+
+<div class="tags">
+    {% for tag in list.tags %}
+    <span class="tag">#{{ tag }}</span>
+    {% endfor %}
+</div>
+
+{% if list.is_ethereal %}
+<button onclick="restoreEtherealList('{{ list._id }}')" class="btn btn-restore">
+    🔄 Restore to Original
+</button>
+{% endif %}
+
+<div class="item-input-container">
+    <input 
+        type="text" 
+        id="item-input" 
+        placeholder="Type to add item..."
+        autocomplete="off"
+        onkeyup="handleItemInput(event, '{{ list._id }}')"
+    >
+    <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+    
+    {% if undo_count > 0 %}
+    <button onclick="undoDelete()" class="btn btn-undo">
+        Undo ↶ ({{ undo_count }})
+    </button>
+    {% endif %}
+</div>
+
+<div id="items-container" class="items-list">
+    {% for item in list.items %}
+    <div class="item" data-item-id="{{ item._id }}">
+        <span class="item-text">☐ {{ item.text }}</span>
+        <button onclick="deleteItem('{{ list._id }}', '{{ item._id }}')" class="item-delete">×</button>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal container -->
+<div id="modal-container"></div>
+{% endblock %}
+```
+
+### 10.2 Create List Form
+
+```html
+<!-- templates/lists/create.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Create New List</h1>
+    
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        
+        <div class="form-group">
+            <label>List Name</label>
+            {{ form.name(class="form-control") }}
+        </div>
+        
+        <div class="form-group">
+            <label>Tags (comma-separated)</label>
+            {{ form.tags(class="form-control", placeholder="groceries, shopping, weekly") }}
+        </div>
+        
+        <div class="form-group">
+            <label>Thumbnail</label>
+            {{ form.thumbnail(class="form-control") }}
+            <small>Max 500KB</small>
+        </div>
+        
+        <div class="form-group checkbox">
+            {{ form.is_public() }}
+            <label>Make this list public</label>
+        </div>
+        
+        <div class="form-group checkbox">
+            {{ form.is_ethereal() }}
+            <label>
+                Make this an ethereal list ✨
+                <small>Ethereal lists can be restored to their original state</small>
+            </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create List</button>
+    </form>
+</div>
+{% endblock %}
+```
+
+## 11. Security Considerations
+
+- Rate limiting on API endpoints (Flask-Limiter)
+- Input sanitization for all user inputs
+- Image upload validation (file type, size)
+- Flask session security with SECRET_KEY
+- CSRF protection with Flask-WTF
+- Password hashing with Werkzeug
+- MongoDB injection prevention (use PyMongo properly)
+- Secure file uploads (whitelist extensions)
+- XSS protection in Jinja templates (auto-escaping enabled)
+
+## 12. Performance Optimizations
+
+- Pagination for list exploration
+- Image compression for thumbnails (Pillow)
+- Index optimization on frequently queried fields
+- Caching for popular public lists (Flask-Caching)
+- Debouncing on autocomplete search (JavaScript)
+- Lazy loading for list items
+- MongoDB aggregation pipelines for complex queries
+- Static file caching with proper headers
+
+## 13. Dependencies (requirements.txt)
+
+```txt
+Flask==3.0.0
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+Flask-Limiter==3.5.0
+pymongo==4.6.1
+Pillow==10.1.0
+python-dotenv==1.0.0
+email-validator==2.1.0
+WTForms==3.1.1
+```
+
+## 14. Configuration (config.py)
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
+    MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/list_tracker')
+    UPLOAD_FOLDER = 'static/uploads/thumbnails'
+    MAX_CONTENT_LENGTH = 500 * 1024  # 500KB max file size
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+```
+
+## 15. Future Enhancements (Out of Scope v1)
+
+- Collaborative lists (sharing with specific users)
+- Export/import lists (CSV, JSON)
+- Rich text items with markdown support
+- List analytics and usage statistics
+- Mobile apps (React Native)
+- Email notifications for shared lists
+- Custom sorting options (manual, by date, etc.)
+- List categories/folders
+- Bulk operations (add multiple items at once)
+
+## 16. Design Mockup Notes
+
+### Color Palette
+
+**Dark Mode (Default):**
+
+- Background: #1a1a1a
+- Surface: #2d2d2d
+- Primary: #6366f1 (indigo)
+- Text: #e5e5e5
+- Accent: #8b5cf6 (purple)
+- Success: #10b981 (green)
+- Error: #ef4444 (red)
+
+**Light Mode:**
+
+- Background: #ffffff
+- Surface: #f5f5f5
+- Primary: #4f46e5 (indigo)
+- Text: #1a1a1a
+- Accent: #7c3aed (purple)
+- Success: #059669 (green)
+- Error: #dc2626 (red)
+
+### Typography
+
+- Headings: Sans-serif, medium weight
+- Body: Sans-serif, regular weight
+- Monospace for tags
+
+### Spacing
+
+- Use 8px base unit
+- Generous padding (16-24px)
+- Clear visual hierarchy
+
+### Modal Styling
+
+- Centered or top-right toast notification
+- Smooth fade-in/fade-out animations
+- Green background for success
+- Red background for error
+- Icon + message layout
+
+-----
+
+This design document provides a comprehensive blueprint for building the List Tracker web app with Flask and Jinja2, featuring automatic alphabetical sorting, ethereal lists for reusable templates, and user-friendly modal feedback.​​​​​​​​​​​​​​​​
