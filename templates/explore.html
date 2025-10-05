@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Explore - List Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold mb-6">Explore Public Lists</h1>
+    
+    <form method="GET" class="mb-6">
+        <div class="flex gap-4">
+            <input 
+                type="text" 
+                name="q" 
+                value="{{ search_query }}" 
+                placeholder="Search lists..." 
+                class="flex-1 p-3 rounded border"
+                style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+            >
+            <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
+                Search
+            </button>
+        </div>
+    </form>
+    
+    {% if lists %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for list in lists %}
+                <div class="card p-4 rounded-lg">
+                    <a href="{{ url_for('view_list', list_id=list._id) }}" class="block hover:opacity-80">
+                        {% if list.thumbnail_url %}
+                            <img src="{{ list.thumbnail_url }}" alt="{{ list.name }}" class="w-full h-40 object-cover rounded mb-3">
+                        {% else %}
+                            <div class="w-full h-40 bg-gray-600 rounded mb-3 flex items-center justify-center">
+                                <span class="text-4xl">📋</span>
+                            </div>
+                        {% endif %}
+                        <h3 class="font-bold text-lg mb-1">
+                            {{ list.name }}
+                            {% if list.is_ethereal %}
+                                <span class="text-sm">✨</span>
+                            {% endif %}
+                        </h3>
+                        <p class="text-sm mb-2" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
+                    </a>
+                    
+                    {% if current_user.is_authenticated %}
+                        <button 
+                            onclick="toggleFavorite('{{ list._id }}', this)" 
+                            class="w-full mt-2 {% if list.is_favorited %}bg-yellow-600{% else %}card{% endif %} py-2 rounded hover:opacity-80"
+                        >
+                            <span class="favorite-icon">{% if list.is_favorited %}⭐{% else %}☆{% endif %}</span>
+                            <span class="favorite-text">{% if list.is_favorited %}Favorited{% else %}Favorite{% endif %}</span>
+                        </button>
+                    {% endif %}
+                    
+                    {% if list.tags %}
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            {% for tag in list.tags[:3] %}
+                                <span class="text-xs px-2 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
+                                    #{{ tag }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12" style="color: var(--text-secondary);">
+            <p class="text-xl">No public lists found</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if current_user.is_authenticated %}
+<script>
+const csrfToken = '{{ csrf_token() }}';
+
+async function toggleFavorite(listId, button) {
+    const response = await fetch(`/api/favorite/${listId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        const icon = button.querySelector('.favorite-icon');
+        const text = button.querySelector('.favorite-text');
+        
+        if (result.favorited) {
+            button.classList.remove('card');
+            button.classList.add('bg-yellow-600');
+            icon.textContent = '⭐';
+            text.textContent = 'Favorited';
+        } else {
+            button.classList.add('card');
+            button.classList.remove('bg-yellow-600');
+            icon.textContent = '☆';
+            text.textContent = 'Favorite';
+        }
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

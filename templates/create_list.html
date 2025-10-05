@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Create List - List Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Create New List</h1>
+    <form method="POST" enctype="multipart/form-data" class="card p-6 rounded-lg space-y-4">
+        {{ form.hidden_tag() }}
+        
+        <div>
+            <label class="block mb-2 font-semibold">List Name</label>
+            {{ form.name(class="w-full p-2 rounded border", style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);") }}
+            {% if form.name.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.name.errors[0] }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
+            <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-semibold">Tags (comma-separated)</label>
+            {{ form.tags(class="w-full p-2 rounded border", placeholder="e.g. work, shopping, travel", style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);") }}
+        </div>
+        
+        <div class="flex items-center space-x-6">
+            <label class="flex items-center space-x-2">
+                {{ form.is_public(class="w-4 h-4") }}
+                <span>Make Public</span>
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                {{ form.is_ethereal(class="w-4 h-4") }}
+                <span>Ethereal List ✨</span>
+            </label>
+        </div>
+        
+        <p class="text-sm" style="color: var(--text-secondary);">
+            Ethereal lists can be restored to their original state - perfect for reusable templates like packing lists or checklists.
+        </p>
+        
+        <div class="flex space-x-4">
+            <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Create List
+            </button>
+            <a href="{{ url_for('index') }}" class="flex-1 card py-2 rounded text-center hover:opacity-80">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

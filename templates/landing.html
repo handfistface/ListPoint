@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[70vh] text-center">
+    <h1 class="text-5xl font-bold mb-6">Welcome to List Tracker</h1>
+    <p class="text-xl mb-8" style="color: var(--text-secondary); max-width: 600px;">
+        Create, manage, and share lists with ease. Track your tasks, organize your ideas, and discover lists from others.
+    </p>
+    <div class="flex space-x-4">
+        <a href="{{ url_for('register') }}" class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-blue-700">
+            Get Started
+        </a>
+        <a href="{{ url_for('login') }}" class="card px-8 py-3 rounded-lg text-lg hover:opacity-80">
+            Sign In
+        </a>
+    </div>
+</div>
+{% endblock %}

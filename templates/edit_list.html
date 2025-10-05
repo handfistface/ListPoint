@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Edit List - List Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Edit List</h1>
+    <form method="POST" enctype="multipart/form-data" class="card p-6 rounded-lg space-y-4">
+        {{ form.hidden_tag() }}
+        
+        <div>
+            <label class="block mb-2 font-semibold">List Name</label>
+            {{ form.name(class="w-full p-2 rounded border", style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);") }}
+            {% if form.name.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.name.errors[0] }}</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
+            {% if list.thumbnail_url %}
+                <img src="{{ list.thumbnail_url }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded mb-2">
+            {% endif %}
+            <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-semibold">Tags (comma-separated)</label>
+            {{ form.tags(class="w-full p-2 rounded border", style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);") }}
+        </div>
+        
+        <div class="flex items-center space-x-6">
+            <label class="flex items-center space-x-2">
+                {{ form.is_public(class="w-4 h-4") }}
+                <span>Make Public</span>
+            </label>
+            
+            {% if list.is_ethereal %}
+                <span class="text-sm" style="color: var(--text-secondary);">✨ Ethereal List</span>
+            {% endif %}
+        </div>
+        
+        <div class="flex space-x-4">
+            <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Save Changes
+            </button>
+            <a href="{{ url_for('view_list', list_id=list._id) }}" class="flex-1 card py-2 rounded text-center hover:opacity-80">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

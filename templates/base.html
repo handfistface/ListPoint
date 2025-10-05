@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme if theme else 'dark' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}List Tracker{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <style>
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+        }
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="min-h-screen">
+    <nav class="border-b" style="border-color: var(--border-color);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{{ url_for('index') }}" class="text-2xl font-bold">List Tracker</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('explore') }}" class="hover:opacity-70">Explore</a>
+                        <a href="{{ url_for('create_list') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ New List</a>
+                        <button onclick="toggleTheme()" class="hover:opacity-70">
+                            <span id="theme-icon">🌙</span>
+                        </button>
+                        <span style="color: var(--text-secondary);">{{ current_user.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="hover:opacity-70">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('explore') }}" class="hover:opacity-70">Explore</a>
+                        <a href="{{ url_for('login') }}" class="hover:opacity-70">Login</a>
+                        <a href="{{ url_for('register') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Sign Up</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div id="flash-{{ loop.index }}" class="mb-4 p-4 rounded fade-in {% if category == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} text-white">
+                        {{ message }}
+                    </div>
+                    <script>
+                        setTimeout(() => {
+                            const el = document.getElementById('flash-{{ loop.index }}');
+                            if (el) el.style.opacity = '0';
+                            setTimeout(() => el && el.remove(), 300);
+                        }, 3000);
+                    </script>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            document.getElementById('theme-icon').textContent = newTheme === 'dark' ? '🌙' : '☀️';
+            
+            {% if current_user.is_authenticated %}
+            fetch('/api/theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ theme: newTheme })
+            });
+            {% else %}
+            localStorage.setItem('theme', newTheme);
+            {% endif %}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
