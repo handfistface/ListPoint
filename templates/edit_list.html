@@ -18,8 +18,8 @@
         
         <div>
             <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
-            {% if list.thumbnail_url %}
-                <img src="{{ list.thumbnail_url }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded mb-2">
+            {% if current_list.thumbnail_url %}
+                <img src="{{ current_list.thumbnail_url }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded mb-2">
             {% endif %}
             <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
         </div>
@@ -35,7 +35,7 @@
                 <span>Make Public</span>
             </label>
             
-            {% if list.is_ethereal %}
+            {% if current_list.is_ethereal %}
                 <span class="text-sm" style="color: var(--text-secondary);">✨ Ethereal List</span>
             {% endif %}
         </div>
@@ -44,7 +44,7 @@
             <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
                 Save Changes
             </button>
-            <a href="{{ url_for('view_list', list_id=list._id) }}" class="flex-1 card py-2 rounded text-center hover:opacity-80">
+            <a href="{{ url_for('view_list', list_id=current_list._id) }}" class="flex-1 card py-2 rounded text-center hover:opacity-80">
                 Cancel
             </a>
         </div>

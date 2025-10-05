@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ list.name }} - List Tracker{% endblock %}
+{% block title %}{{ current_list.name }} - List Tracker{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -11,14 +11,14 @@
     <div class="flex justify-between items-start mb-6">
         <div>
             <h1 class="text-3xl font-bold mb-2">
-                {{ list.name }}
-                {% if list.is_ethereal %}
+                {{ current_list.name }}
+                {% if current_list.is_ethereal %}
                     <span class="text-2xl">✨</span>
                 {% endif %}
             </h1>
-            {% if list.tags %}
+            {% if current_list.tags %}
                 <div class="flex flex-wrap gap-2 mb-2">
-                    {% for tag in list.tags %}
+                    {% for tag in current_list.tags %}
                         <span class="text-sm px-3 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
                             #{{ tag }}
                         </span>
@@ -26,13 +26,13 @@
                 </div>
             {% endif %}
             {% if not is_owner %}
-                <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
+                <p class="text-sm" style="color: var(--text-secondary);">by @{{ current_list.owner_username }}</p>
             {% endif %}
         </div>
         
         <div class="flex items-center space-x-2">
             {% if is_owner %}
-                {% if list.is_ethereal %}
+                {% if current_list.is_ethereal %}
                     <button onclick="restoreList()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
                         🔄 Restore to Original
                     </button>
@@ -73,8 +73,8 @@
 
     <div class="card p-6 rounded-lg">
         <div id="items-list" class="space-y-2">
-            {% if list.items %}
-                {% for item in list.items %}
+            {% if current_list.items %}
+                {% for item in current_list.items %}
                     <div class="flex items-center justify-between p-3 rounded hover:bg-opacity-50" style="background-color: var(--bg-primary);" data-item-id="{{ item._id }}">
                         <span>{{ item.text }}</span>
                         {% if is_owner %}
@@ -107,7 +107,7 @@
 
 {% block extra_js %}
 <script>
-const listId = '{{ list._id }}';
+const listId = '{{ current_list._id }}';
 const csrfToken = '{{ csrf_token() }}';
 const isOwner = {{ 'true' if is_owner else 'false' }};
 let undoStack = [];

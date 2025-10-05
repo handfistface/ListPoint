@@ -190,7 +190,7 @@ def view_list(list_id):
     theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
     
     return render_template('view_list.html', 
-                         list=list_doc, 
+                         current_list=list_doc, 
                          is_owner=is_owner,
                          is_favorited=is_favorited,
                          theme=theme)
@@ -236,7 +236,7 @@ def edit_list(list_id):
     form.is_public.data = list_doc['is_public']
     form.is_ethereal.data = list_doc.get('is_ethereal', False)
     
-    return render_template('edit_list.html', form=form, list=list_doc, theme=current_user.preferences.get('theme', 'dark'))
+    return render_template('edit_list.html', form=form, current_list=list_doc, theme=current_user.preferences.get('theme', 'dark'))
 
 @app.route('/lists/<list_id>/delete', methods=['POST'])
 @login_required
