@@ -26,7 +26,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for list in lists %}
                 <div class="card p-4 rounded-lg">
-                    <a href="{{ url_for('view_list', list_id=list._id) }}" class="block hover:opacity-80">
+                    <a href="{{ url_for('view_list', list_id=list._id|string) }}" class="block hover:opacity-80">
                         {% if list.thumbnail_url %}
                             <img src="{{ list.thumbnail_url }}" alt="{{ list.name }}" class="w-full h-40 object-cover rounded mb-3">
                         {% else %}
@@ -45,7 +45,7 @@
                     
                     {% if current_user.is_authenticated %}
                         <button 
-                            onclick="toggleFavorite('{{ list._id }}', this)" 
+                            onclick="toggleFavorite('{{ list._id|string }}', this)" 
                             class="w-full mt-2 {% if list.is_favorited %}bg-yellow-600{% else %}card{% endif %} py-2 rounded hover:opacity-80"
                         >
                             <span class="favorite-icon">{% if list.is_favorited %}⭐{% else %}☆{% endif %}</span>
