@@ -30,15 +30,18 @@
             {% endif %}
         </div>
         
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-2 flex-wrap gap-2">
             {% if is_owner %}
                 {% if current_list.is_ethereal %}
-                    <button onclick="restoreList()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                        🔄 Restore to Original
+                    <button id="mode-toggle-btn" onclick="toggleMode()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                        <span id="mode-toggle-text">📝 Edit Mode</span>
+                    </button>
+                    <button id="restore-btn" onclick="restoreList()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                        <span id="restore-text">🔄 Uncheck All</span>
                     </button>
                 {% endif %}
                 <a href="{{ url_for('edit_list', list_id=current_list._id) }}" class="card px-4 py-2 rounded hover:opacity-80">
-                    Edit
+                    Edit List
                 </a>
                 <button onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
                     Delete
@@ -53,7 +56,7 @@
     </div>
 
     {% if is_owner %}
-        <div class="mb-6">
+        <div class="mb-6" id="add-item-section">
             <div class="relative">
                 <input 
                     type="text" 
@@ -75,10 +78,15 @@
         <div id="items-list" class="space-y-2">
             {% if current_list['items'] %}
                 {% for item in current_list['items'] %}
-                    <div class="flex items-center justify-between p-3 rounded hover:bg-opacity-50" style="background-color: var(--bg-primary);" data-item-id="{{ item._id }}">
-                        <span>{{ item.text }}</span>
+                    <div class="flex items-center justify-between p-3 rounded hover:bg-opacity-50 item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary);" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}">
+                        <div class="flex items-center gap-3 flex-1">
+                            <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
+                                   onchange="toggleItemChecked('{{ item._id }}')" 
+                                   {% if item.get('checked') %}checked{% endif %}>
+                            <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
+                        </div>
                         {% if is_owner %}
-                            <button onclick="deleteItem('{{ item._id }}', '{{ item.text }}')" class="text-red-500 hover:text-red-700">
+                            <button class="item-delete-btn hidden text-red-500 hover:text-red-700" onclick="deleteItem('{{ item._id }}', '{{ item.text }}')">
                                 ×
                             </button>
                         {% endif %}
@@ -110,8 +118,67 @@
 const listId = '{{ current_list._id }}';
 const csrfToken = '{{ csrf_token() }}';
 const isOwner = {{ 'true' if is_owner else 'false' }};
+const isEthereal = {{ 'true' if current_list.is_ethereal else 'false' }};
 let undoStack = [];
 const MAX_UNDO = 10;
+let currentMode = 'checkOff';
+
+function toggleMode() {
+    if (!isEthereal || !isOwner) return;
+    
+    currentMode = currentMode === 'checkOff' ? 'edit' : 'checkOff';
+    updateUIForMode();
+}
+
+function updateUIForMode() {
+    const modeToggleText = document.getElementById('mode-toggle-text');
+    const restoreText = document.getElementById('restore-text');
+    const addItemSection = document.getElementById('add-item-section');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const deleteButtons = document.querySelectorAll('.item-delete-btn');
+    
+    if (currentMode === 'edit') {
+        if (modeToggleText) modeToggleText.textContent = '☑ Check Off Mode';
+        if (restoreText) restoreText.textContent = '🔄 Restore to Original';
+        if (addItemSection) addItemSection.style.display = 'block';
+        checkboxes.forEach(cb => cb.classList.add('hidden'));
+        deleteButtons.forEach(btn => btn.classList.remove('hidden'));
+    } else {
+        if (modeToggleText) modeToggleText.textContent = '📝 Edit Mode';
+        if (restoreText) restoreText.textContent = '🔄 Uncheck All';
+        if (addItemSection) addItemSection.style.display = 'none';
+        checkboxes.forEach(cb => cb.classList.remove('hidden'));
+        deleteButtons.forEach(btn => btn.classList.add('hidden'));
+    }
+}
+
+async function toggleItemChecked(itemId) {
+    const response = await fetch(`/api/lists/${listId}/items/${itemId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
+    
+    if (response.ok) {
+        const itemRow = document.querySelector(`[data-item-id="${itemId}"]`);
+        const checkbox = itemRow.querySelector('.item-checkbox');
+        const itemText = itemRow.querySelector('.item-text');
+        const isChecked = checkbox.checked;
+        
+        if (isChecked) {
+            itemText.classList.add('line-through');
+            itemRow.classList.add('opacity-50');
+        } else {
+            itemText.classList.remove('line-through');
+            itemRow.classList.remove('opacity-50');
+        }
+    }
+}
+
+if (isEthereal && isOwner) {
+    updateUIForMode();
+}
 
 {% if is_owner %}
 const itemInput = document.getElementById('item-input');
@@ -161,7 +228,11 @@ async function addItem() {
     const text = itemInput.value.trim();
     if (!text) return;
     
-    const response = await fetch(`/api/lists/${listId}/items`, {
+    const endpoint = (isEthereal && currentMode === 'edit') 
+        ? `/api/lists/${listId}/original/items`
+        : `/api/lists/${listId}/items`;
+    
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -182,7 +253,11 @@ async function addItem() {
 }
 
 async function deleteItem(itemId, itemText) {
-    const response = await fetch(`/api/lists/${listId}/items/${itemId}`, {
+    const endpoint = (isEthereal && currentMode === 'edit')
+        ? `/api/lists/${listId}/original/items/${itemId}`
+        : `/api/lists/${listId}/items/${itemId}`;
+    
+    const response = await fetch(endpoint, {
         method: 'DELETE',
         headers: {
             'X-CSRFToken': csrfToken
@@ -237,21 +312,29 @@ async function undoDelete() {
 }
 
 async function restoreList() {
-    if (!confirm('Restore list to original items? Current items will be replaced.')) {
+    const isCheckOffMode = currentMode === 'checkOff';
+    const confirmMessage = isCheckOffMode 
+        ? 'Uncheck all items?' 
+        : 'Restore list to original items? Current items will be replaced.';
+    
+    if (!confirm(confirmMessage)) {
         return;
     }
     
     const response = await fetch(`/api/lists/${listId}/restore`, {
         method: 'POST',
         headers: {
+            'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
-        }
+        },
+        body: JSON.stringify({ reset_checked_only: isCheckOffMode })
     });
     
     const result = await response.json();
     
     if (result.success) {
-        showModal('✓ List restored successfully', 'success');
+        const message = isCheckOffMode ? '✓ All items unchecked' : '✓ List restored successfully';
+        showModal(message, 'success');
         setTimeout(() => location.reload(), 1000);
     } else {
         showModal('✗ Failed to restore list', 'error');
