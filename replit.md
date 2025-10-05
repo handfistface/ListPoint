@@ -15,7 +15,9 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Create lists with name, thumbnail image, tags, and visibility settings
 - Two list types:
   - **Standard Lists**: Permanent item management
-  - **Ethereal Lists**: Template-style lists with "Restore to Original" functionality
+  - **Ethereal Lists**: Template-style lists with two modes:
+    - **Check Off Mode** (default): Check items off temporarily, restore with "Uncheck All"
+    - **Edit Mode** (owner only): Modify original template items permanently
 - Edit list properties (name, tags, visibility, thumbnail)
 - Delete lists with confirmation
 - Public/private visibility toggle
@@ -92,17 +94,25 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-05: Added dual-mode system for ethereal lists
+  - Check Off Mode: Temporary item checking with visual feedback
+  - Edit Mode: Permanent template modification (owner only)
+  - Mode toggle button with context-aware restore functionality
 - 2025-10-05: Initial implementation of all MVP features
-- Complete user authentication system
-- List and item management with sorting
-- Ethereal list functionality
-- Social discovery and favorites
-- Theme toggle system
-- Image upload handling
+  - Complete user authentication system
+  - List and item management with sorting
+  - Ethereal list functionality
+  - Social discovery and favorites
+  - Theme toggle system
+  - Image upload handling
 
 ## Architecture Notes
 - All items automatically sort alphabetically on addition
 - Ethereal lists store original_items snapshot for restoration
+- Items have 'checked' field for check-off mode tracking
+- Ethereal list modes:
+  - Check Off Mode: Items displayed with checkboxes, add input hidden, restore unchecks all
+  - Edit Mode: Items displayed with delete buttons, add input visible, restore resets to original_items
 - Autocomplete cache tracks user's item history with frequency
 - CSRF protection enabled on all forms
 - Password hashing using Werkzeug's generate_password_hash
