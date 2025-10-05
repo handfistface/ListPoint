@@ -287,8 +287,52 @@ def restore_list(list_id):
     if not list_doc or str(list_doc['owner_id']) != current_user.id:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
-    success = db.restore_ethereal_list(list_id)
+    data = request.get_json() or {}
+    reset_checked_only = data.get('reset_checked_only', False)
+    success = db.restore_ethereal_list(list_id, reset_checked_only)
     return jsonify({'success': success, 'message': 'List restored successfully' if success else 'Failed to restore list'})
+
+@app.route('/api/lists/<list_id>/items/<item_id>/toggle', methods=['POST'])
+def toggle_item(list_id, item_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc:
+        return jsonify({'success': False, 'message': 'List not found'}), 404
+    
+    if not list_doc['is_public'] and (not current_user.is_authenticated or str(list_doc['owner_id']) != current_user.id):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    success, message = db.toggle_item_checked(list_id, item_id)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/lists/<list_id>/original/items', methods=['POST'])
+@login_required
+def add_item_to_original(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    item_text = data.get('text', '').strip()
+    
+    if not item_text:
+        return jsonify({'success': False, 'message': 'Item text is required'}), 400
+    
+    success, message = db.add_item_to_original(list_id, item_text)
+    
+    if success:
+        db.update_autocomplete_cache(current_user.id, item_text)
+    
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/lists/<list_id>/original/items/<item_id>', methods=['DELETE'])
+@login_required
+def delete_item_from_original(list_id, item_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    success = db.remove_item_from_original(list_id, item_id)
+    return jsonify({'success': success})
 
 @app.route('/api/autocomplete')
 @login_required
