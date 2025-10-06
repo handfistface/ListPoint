@@ -53,6 +53,48 @@
         </div>
     </div>
 
+    <div id="collaborated-section" class="{% if not collaborated_lists %}hidden{% endif %} mb-8">
+        <h2 class="text-xl font-semibold mb-4">🤝 Collaborated Lists</h2>
+        <div id="collaborated-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for list in collaborated_lists %}
+                <div class="card p-4 rounded-lg relative list-card" data-list-id="{{ list._id|string }}" data-owner-username="{{ list.owner_username }}" data-is-own="false">
+                    <button 
+                        onclick="toggleFavorite('{{ list._id|string }}', this, event)" 
+                        class="absolute top-2 right-2 text-3xl z-10 hover:scale-110 transition-transform"
+                        data-favorited="{{ 'true' if list.is_favorited else 'false' }}"
+                    >
+                        {% if list.is_favorited %}⭐{% else %}☆{% endif %}
+                    </button>
+                    <a href="{{ url_for('view_list', list_id=list._id|string) }}" class="block hover:opacity-80 transition">
+                        {% if list.thumbnail_url %}
+                            <img src="{{ list.thumbnail_url }}" alt="{{ list.name }}" class="w-full h-40 object-cover rounded mb-3">
+                        {% else %}
+                            <div class="w-full h-40 bg-gray-600 rounded mb-3 flex items-center justify-center">
+                                <span class="text-4xl">📋</span>
+                            </div>
+                        {% endif %}
+                        <h3 class="font-bold text-lg mb-1">
+                            {{ list.name }}
+                            {% if list.is_ethereal %}
+                                <span class="text-sm">✨</span>
+                            {% endif %}
+                        </h3>
+                        <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
+                        {% if list.tags %}
+                            <div class="flex flex-wrap gap-1 mt-2">
+                                {% for tag in list.tags[:3] %}
+                                    <span class="text-xs px-2 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
+                                        #{{ tag }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
     {% if my_lists %}
         <div>
             <h2 class="text-xl font-semibold mb-4">📋 My Created Lists</h2>

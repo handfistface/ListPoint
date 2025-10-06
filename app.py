@@ -263,7 +263,20 @@ def edit_list(list_id):
     form.is_public.data = list_doc['is_public']
     form.is_ethereal.data = list_doc.get('is_ethereal', False)
     
-    return render_template('edit_list.html', form=form, current_list=list_doc, theme=current_user.preferences.get('theme', 'dark'))
+    collaborators_info = []
+    for collab_id in list_doc.get('collaborators', []):
+        user = db.get_user_by_id(str(collab_id))
+        if user:
+            collaborators_info.append({
+                '_id': str(user['_id']),
+                'username': user['username']
+            })
+    
+    return render_template('edit_list.html', 
+                         form=form, 
+                         current_list=list_doc, 
+                         collaborators=collaborators_info,
+                         theme=current_user.preferences.get('theme', 'dark'))
 
 @app.route('/lists/<list_id>/delete', methods=['POST'])
 @login_required
@@ -566,6 +579,14 @@ def stripe_webhook():
                 db.cancel_user_subscription(str(user_dict['_id']))
     
     return jsonify({'status': 'success'}), 200
+
+@app.route('/api/users/<user_id>')
+@login_required
+def get_user(user_id):
+    user = db.get_user_by_id(user_id)
+    if user:
+        return jsonify({'username': user['username'], '_id': str(user['_id'])})
+    return jsonify({'error': 'User not found'}), 404
 
 @app.route('/api/search_users')
 @login_required
