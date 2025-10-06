@@ -18,7 +18,9 @@
         
         <div>
             <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
-            <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+            <div class="relative">
+                <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary); max-width: 100%; pointer-events: auto;">
+            </div>
         </div>
         
         <div>

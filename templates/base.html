@@ -51,6 +51,20 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* Prevent file input from blocking interface */
+        input[type="file"] {
+            position: relative !important;
+            z-index: auto !important;
+        }
+        
+        input[type="file"]::backdrop {
+            display: none !important;
+        }
+        
+        input[type="file"]::-webkit-file-upload-button {
+            pointer-events: all;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
