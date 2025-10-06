@@ -21,9 +21,11 @@
             {% if current_list.thumbnail_url %}
                 <img src="{{ current_list.thumbnail_url }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded mb-2">
             {% endif %}
-            <div class="relative">
-                <input type="file" name="thumbnail" accept="image/*" class="w-full p-2 rounded border" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary); max-width: 100%; pointer-events: auto;">
-            </div>
+            <input type="file" id="thumbnail-input" name="thumbnail" accept="image/*" class="hidden">
+            <button type="button" onclick="document.getElementById('thumbnail-input').click()" class="px-4 py-2 rounded border hover:opacity-70" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
+                Choose File
+            </button>
+            <span id="file-name" class="ml-2" style="color: var(--text-secondary);"></span>
         </div>
         
         <div>
@@ -52,4 +54,13 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('thumbnail-input').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || '';
+        document.getElementById('file-name').textContent = fileName || 'No file chosen';
+    });
+</script>
 {% endblock %}
