@@ -58,6 +58,11 @@ class ListForm(FlaskForm):
 def make_session_permanent():
     session.permanent = True
 
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    flash('File too large! Maximum size is 500KB. Please choose a smaller image.', 'error')
+    return redirect(request.referrer or url_for('index'))
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:

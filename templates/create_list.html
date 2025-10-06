@@ -60,9 +60,31 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('thumbnail-input').addEventListener('change', function(e) {
-        const fileName = e.target.files[0]?.name || '';
-        document.getElementById('file-name').textContent = fileName || 'No file chosen';
+    const thumbnailInput = document.getElementById('thumbnail-input');
+    const fileNameSpan = document.getElementById('file-name');
+    const maxSize = 500 * 1024; // 500KB in bytes
+
+    thumbnailInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        
+        if (!file) {
+            fileNameSpan.textContent = 'No file chosen';
+            fileNameSpan.style.color = 'var(--text-secondary)';
+            return;
+        }
+
+        // Check file size
+        if (file.size > maxSize) {
+            fileNameSpan.textContent = `File too large! (${(file.size / 1024).toFixed(0)}KB) Max: 500KB`;
+            fileNameSpan.style.color = '#ef4444'; // red
+            thumbnailInput.value = ''; // Clear the selection
+            alert('Image is too large! Please choose an image smaller than 500KB.');
+            return;
+        }
+
+        // File is valid
+        fileNameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(0)}KB)`;
+        fileNameSpan.style.color = '#10b981'; // green
     });
 </script>
 {% endblock %}
