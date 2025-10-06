@@ -54,6 +54,26 @@
         </div>
     </form>
 </div>
+
+<!-- Image Crop Modal -->
+<div id="crop-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" style="z-index: 9999;">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4" style="background-color: var(--bg-secondary);">
+        <h3 class="text-xl font-bold mb-4">Crop Your Thumbnail</h3>
+        
+        <div class="relative inline-block mb-4">
+            <canvas id="crop-canvas" class="max-w-full border" style="border-color: var(--border-color); max-height: 70vh; cursor: move;"></canvas>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="cancelCrop()" class="px-4 py-2 rounded border hover:opacity-70" style="background-color: var(--bg-primary); border-color: var(--border-color);">
+                Cancel
+            </button>
+            <button type="button" onclick="applyCrop()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Apply Crop
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -61,6 +81,276 @@
     const thumbnailInput = document.getElementById('thumbnail-input');
     const fileNameSpan = document.getElementById('file-name');
     const maxSize = 500 * 1024; // 500KB in bytes
+    
+    let currentImage = null;
+    let cropArea = { x: 0, y: 0, width: 0, height: 0 };
+    let isDragging = false;
+    let isResizing = false;
+    let dragStart = { x: 0, y: 0 };
+    let resizeHandle = null;
+    let canvas, ctx;
+    let displayScale = 1;
+
+    function showCropModal(img) {
+        currentImage = img;
+        const modal = document.getElementById('crop-modal');
+        canvas = document.getElementById('crop-canvas');
+        ctx = canvas.getContext('2d');
+        
+        // Calculate display size while maintaining aspect ratio
+        const maxWidth = window.innerWidth * 0.8;
+        const maxHeight = window.innerHeight * 0.7;
+        let displayWidth = img.width;
+        let displayHeight = img.height;
+        
+        if (displayWidth > maxWidth || displayHeight > maxHeight) {
+            const widthRatio = maxWidth / displayWidth;
+            const heightRatio = maxHeight / displayHeight;
+            displayScale = Math.min(widthRatio, heightRatio);
+            displayWidth = img.width * displayScale;
+            displayHeight = img.height * displayScale;
+        } else {
+            displayScale = 1;
+        }
+        
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        
+        // Initialize crop area (centered, reasonable size)
+        const cropWidth = Math.min(displayWidth * 0.7, displayHeight);
+        const cropHeight = cropWidth * (160 / 300); // Aspect ratio of thumbnails
+        cropArea = {
+            x: (displayWidth - cropWidth) / 2,
+            y: (displayHeight - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight
+        };
+        
+        drawCropInterface();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function drawCropInterface() {
+        // Draw the full image
+        ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+        
+        // Draw darkened overlay outside crop area
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Clear the crop area (shows image normally)
+        ctx.clearRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+        ctx.drawImage(currentImage, 
+            cropArea.x / displayScale, cropArea.y / displayScale, 
+            cropArea.width / displayScale, cropArea.height / displayScale,
+            cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+        
+        // Draw crop rectangle border
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+        
+        // Draw resize handles
+        const handleSize = 10;
+        ctx.fillStyle = '#3b82f6';
+        // Corners
+        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+    }
+
+    function getResizeHandle(x, y) {
+        const handleSize = 10;
+        const handles = [
+            { name: 'nw', x: cropArea.x, y: cropArea.y },
+            { name: 'ne', x: cropArea.x + cropArea.width, y: cropArea.y },
+            { name: 'sw', x: cropArea.x, y: cropArea.y + cropArea.height },
+            { name: 'se', x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height }
+        ];
+        
+        for (let handle of handles) {
+            if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
+                return handle.name;
+            }
+        }
+        return null;
+    }
+
+    canvas = document.getElementById('crop-canvas');
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        resizeHandle = getResizeHandle(x, y);
+        if (resizeHandle) {
+            isResizing = true;
+        } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                   y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+            isDragging = true;
+        }
+        
+        dragStart = { x, y };
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        if (isResizing && resizeHandle) {
+            const dx = x - dragStart.x;
+            const dy = y - dragStart.y;
+            const aspectRatio = 160 / 300;
+            
+            if (resizeHandle === 'se') {
+                cropArea.width = Math.max(50, cropArea.width + dx);
+                cropArea.height = cropArea.width * aspectRatio;
+            } else if (resizeHandle === 'sw') {
+                const newWidth = Math.max(50, cropArea.width - dx);
+                cropArea.x += cropArea.width - newWidth;
+                cropArea.width = newWidth;
+                cropArea.height = cropArea.width * aspectRatio;
+            } else if (resizeHandle === 'ne') {
+                cropArea.width = Math.max(50, cropArea.width + dx);
+                cropArea.height = cropArea.width * aspectRatio;
+                const newY = cropArea.y + dy;
+                cropArea.y = newY;
+            } else if (resizeHandle === 'nw') {
+                const newWidth = Math.max(50, cropArea.width - dx);
+                cropArea.x += cropArea.width - newWidth;
+                cropArea.width = newWidth;
+                cropArea.height = cropArea.width * aspectRatio;
+                cropArea.y += dy;
+            }
+            
+            // Keep within bounds
+            cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
+            cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
+            
+            dragStart = { x, y };
+            drawCropInterface();
+        } else if (isDragging) {
+            const dx = x - dragStart.x;
+            const dy = y - dragStart.y;
+            
+            cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
+            cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
+            
+            dragStart = { x, y };
+            drawCropInterface();
+        } else {
+            // Update cursor based on position
+            const handle = getResizeHandle(x, y);
+            if (handle) {
+                canvas.style.cursor = handle.includes('n') ? 
+                    (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
+                    (handle.includes('w') ? 'sw-resize' : 'se-resize');
+            } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                       y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+                canvas.style.cursor = 'move';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+        isResizing = false;
+        resizeHandle = null;
+    });
+
+    function cancelCrop() {
+        const modal = document.getElementById('crop-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        thumbnailInput.value = '';
+        fileNameSpan.textContent = 'No file chosen';
+        fileNameSpan.style.color = 'var(--text-secondary)';
+    }
+
+    async function applyCrop() {
+        const modal = document.getElementById('crop-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        
+        fileNameSpan.textContent = 'Processing image...';
+        fileNameSpan.style.color = '#fbbf24';
+        
+        // Create a new canvas for the cropped image
+        const cropCanvas = document.createElement('canvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        
+        // Set canvas to actual crop size
+        const actualX = cropArea.x / displayScale;
+        const actualY = cropArea.y / displayScale;
+        const actualWidth = cropArea.width / displayScale;
+        const actualHeight = cropArea.height / displayScale;
+        
+        cropCanvas.width = actualWidth;
+        cropCanvas.height = actualHeight;
+        
+        // Draw the cropped portion
+        cropCtx.drawImage(currentImage, actualX, actualY, actualWidth, actualHeight, 0, 0, actualWidth, actualHeight);
+        
+        // Convert to blob and compress if needed
+        cropCanvas.toBlob(async (blob) => {
+            let finalBlob = blob;
+            
+            // Compress if over size limit
+            if (blob.size > maxSize) {
+                finalBlob = await compressBlob(cropCanvas, actualWidth, actualHeight);
+            }
+            
+            const file = new File([finalBlob], 'thumbnail.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+            
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            thumbnailInput.files = dataTransfer.files;
+            
+            fileNameSpan.textContent = `Cropped image (${(file.size / 1024).toFixed(0)}KB)`;
+            fileNameSpan.style.color = '#10b981';
+        }, 'image/jpeg', 0.9);
+    }
+
+    async function compressBlob(canvas, width, height) {
+        return new Promise((resolve) => {
+            let quality = 0.8;
+            let currentWidth = width;
+            let currentHeight = height;
+            
+            function tryCompress() {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = currentWidth;
+                tempCanvas.height = currentHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0, width, height, 0, 0, currentWidth, currentHeight);
+                
+                tempCanvas.toBlob((blob) => {
+                    if (blob.size <= maxSize || quality <= 0.1) {
+                        resolve(blob);
+                    } else {
+                        if (quality > 0.5) {
+                            quality -= 0.1;
+                        } else {
+                            currentWidth = Math.floor(currentWidth * 0.9);
+                            currentHeight = Math.floor(currentHeight * 0.9);
+                            quality = 0.8;
+                        }
+                        tryCompress();
+                    }
+                }, 'image/jpeg', quality);
+            }
+            
+            tryCompress();
+        });
+    }
 
     async function compressImage(file) {
         return new Promise((resolve) => {
@@ -141,34 +431,20 @@
             return;
         }
 
-        const originalSize = file.size;
+        // Show loading message
+        fileNameSpan.textContent = 'Loading image...';
+        fileNameSpan.style.color = '#fbbf24';
         
-        // Show processing message
-        fileNameSpan.textContent = 'Compressing image...';
-        fileNameSpan.style.color = '#fbbf24'; // yellow
-        
-        try {
-            let finalFile = file;
-            
-            // Only compress if needed
-            if (file.size > maxSize) {
-                finalFile = await compressImage(file);
-            }
-            
-            // Create a new FileList and assign it to the input
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(finalFile);
-            thumbnailInput.files = dataTransfer.files;
-            
-            // Show result
-            const compressed = finalFile.size < originalSize;
-            fileNameSpan.textContent = `${file.name} (${(finalFile.size / 1024).toFixed(0)}KB)${compressed ? ' - compressed' : ''}`;
-            fileNameSpan.style.color = '#10b981'; // green
-        } catch (error) {
-            fileNameSpan.textContent = 'Error processing image';
-            fileNameSpan.style.color = '#ef4444';
-            thumbnailInput.value = '';
-        }
+        // Load image and show crop modal
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                showCropModal(img);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     });
 </script>
 {% endblock %}

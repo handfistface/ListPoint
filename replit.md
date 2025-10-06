@@ -45,11 +45,15 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Responsive design with TailwindCSS
 - Clean, minimalistic interface
 - Auto-dismissing notification modals
-- Image upload with automatic compression (client-side, max 500KB)
+- Image upload with interactive cropping and compression (client-side, max 500KB)
   - Custom file picker with "Choose File" button
-  - Automatic image resizing and quality reduction for large files
-  - Visual feedback during compression process
-  - Shows final file size and compression status
+  - Interactive crop modal with visual rectangle overlay
+  - Drag to move crop area, resize via corner handles
+  - Dimmed overlay shows excluded areas (50% opacity)
+  - Rectangle maintains thumbnail aspect ratio (160/300)
+  - Automatic compression after cropping if needed
+  - Visual feedback during processing
+  - Shows final file size and crop status
 
 ## Technical Stack
 
@@ -99,6 +103,14 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-06: Interactive image cropping for thumbnails
+  - Modal-based crop interface with visual rectangle overlay
+  - Drag rectangle to reposition crop area
+  - Resize rectangle via corner handles (maintains aspect ratio)
+  - Dimmed overlay (50% opacity) shows excluded areas
+  - Rectangle dimensions match thumbnail display aspect ratio
+  - Automatic compression applied after cropping if needed
+  - Cancel button to discard crop and reselect image
 - 2025-10-06: Automatic image compression for thumbnails
   - Client-side image compression using Canvas API
   - Automatically resizes and compresses images over 500KB
@@ -133,7 +145,14 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Ethereal list modes:
   - Check Off Mode: Items displayed with checkboxes, add input hidden, restore unchecks all
   - Edit Mode: Items displayed with delete buttons, add input visible, restore resets to original_items
-- Image compression flow:
+- Image cropping and compression flow:
+  - Interactive crop modal appears on image selection
+  - Canvas-based interface with draggable/resizable rectangle overlay
+  - Rectangle maintains thumbnail aspect ratio (160px height / 300px width)
+  - 50% opacity overlay dims excluded areas
+  - Corner handles for proportional resizing
+  - Mouse cursor changes based on interaction (move, resize handles)
+  - Cropped image extracted via Canvas API
   - Client-side compression using HTML5 Canvas API
   - Progressive quality reduction (0.9 to 0.1) and dimension scaling (90% steps)
   - Converts all uploads to JPEG format for optimal compression
