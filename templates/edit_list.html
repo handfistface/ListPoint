@@ -126,6 +126,7 @@
             height: cropHeight
         };
         
+        setupCanvasEvents();
         drawCropInterface();
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -178,90 +179,91 @@
         return null;
     }
 
-    canvas = document.getElementById('crop-canvas');
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        resizeHandle = getResizeHandle(x, y);
-        if (resizeHandle) {
-            isResizing = true;
-        } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-                   y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-            isDragging = true;
-        }
-        
-        dragStart = { x, y };
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        if (isResizing && resizeHandle) {
-            const dx = x - dragStart.x;
-            const dy = y - dragStart.y;
-            const aspectRatio = 160 / 300;
+    function setupCanvasEvents() {
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
             
-            if (resizeHandle === 'se') {
-                cropArea.width = Math.max(50, cropArea.width + dx);
-                cropArea.height = cropArea.width * aspectRatio;
-            } else if (resizeHandle === 'sw') {
-                const newWidth = Math.max(50, cropArea.width - dx);
-                cropArea.x += cropArea.width - newWidth;
-                cropArea.width = newWidth;
-                cropArea.height = cropArea.width * aspectRatio;
-            } else if (resizeHandle === 'ne') {
-                cropArea.width = Math.max(50, cropArea.width + dx);
-                cropArea.height = cropArea.width * aspectRatio;
-                const newY = cropArea.y + dy;
-                cropArea.y = newY;
-            } else if (resizeHandle === 'nw') {
-                const newWidth = Math.max(50, cropArea.width - dx);
-                cropArea.x += cropArea.width - newWidth;
-                cropArea.width = newWidth;
-                cropArea.height = cropArea.width * aspectRatio;
-                cropArea.y += dy;
-            }
-            
-            // Keep within bounds
-            cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
-            cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
-            
-            dragStart = { x, y };
-            drawCropInterface();
-        } else if (isDragging) {
-            const dx = x - dragStart.x;
-            const dy = y - dragStart.y;
-            
-            cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
-            cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
-            
-            dragStart = { x, y };
-            drawCropInterface();
-        } else {
-            // Update cursor based on position
-            const handle = getResizeHandle(x, y);
-            if (handle) {
-                canvas.style.cursor = handle.includes('n') ? 
-                    (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
-                    (handle.includes('w') ? 'sw-resize' : 'se-resize');
+            resizeHandle = getResizeHandle(x, y);
+            if (resizeHandle) {
+                isResizing = true;
             } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
                        y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-                canvas.style.cursor = 'move';
-            } else {
-                canvas.style.cursor = 'default';
+                isDragging = true;
             }
-        }
-    });
+            
+            dragStart = { x, y };
+        });
 
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-        isResizing = false;
-        resizeHandle = null;
-    });
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (isResizing && resizeHandle) {
+                const dx = x - dragStart.x;
+                const dy = y - dragStart.y;
+                const aspectRatio = 160 / 300;
+                
+                if (resizeHandle === 'se') {
+                    cropArea.width = Math.max(50, cropArea.width + dx);
+                    cropArea.height = cropArea.width * aspectRatio;
+                } else if (resizeHandle === 'sw') {
+                    const newWidth = Math.max(50, cropArea.width - dx);
+                    cropArea.x += cropArea.width - newWidth;
+                    cropArea.width = newWidth;
+                    cropArea.height = cropArea.width * aspectRatio;
+                } else if (resizeHandle === 'ne') {
+                    cropArea.width = Math.max(50, cropArea.width + dx);
+                    cropArea.height = cropArea.width * aspectRatio;
+                    const newY = cropArea.y + dy;
+                    cropArea.y = newY;
+                } else if (resizeHandle === 'nw') {
+                    const newWidth = Math.max(50, cropArea.width - dx);
+                    cropArea.x += cropArea.width - newWidth;
+                    cropArea.width = newWidth;
+                    cropArea.height = cropArea.width * aspectRatio;
+                    cropArea.y += dy;
+                }
+                
+                // Keep within bounds
+                cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
+                cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
+                
+                dragStart = { x, y };
+                drawCropInterface();
+            } else if (isDragging) {
+                const dx = x - dragStart.x;
+                const dy = y - dragStart.y;
+                
+                cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
+                cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
+                
+                dragStart = { x, y };
+                drawCropInterface();
+            } else {
+                // Update cursor based on position
+                const handle = getResizeHandle(x, y);
+                if (handle) {
+                    canvas.style.cursor = handle.includes('n') ? 
+                        (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
+                        (handle.includes('w') ? 'sw-resize' : 'se-resize');
+                } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                           y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+                    canvas.style.cursor = 'move';
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+            resizeHandle = null;
+        });
+    }
 
     function cancelCrop() {
         const modal = document.getElementById('crop-modal');
