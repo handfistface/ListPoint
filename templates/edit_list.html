@@ -127,7 +127,7 @@
 
 {% block extra_js %}
 <script>
-    const listId = '{{ current_list._id }}';
+    const listId = '{{ current_list._id|string }}';
     
     let searchTimeout;
     const searchInput = document.getElementById('collaborator-search');
