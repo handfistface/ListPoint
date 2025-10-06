@@ -141,7 +141,8 @@ def logout():
 
 @app.route('/landing')
 def landing():
-    return render_template('landing.html')
+    adsense_publisher_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', '')
+    return render_template('landing.html', adsense_publisher_id=adsense_publisher_id)
 
 @app.route('/lists/create', methods=['GET', 'POST'])
 @login_required
@@ -200,12 +201,14 @@ def view_list(list_id):
         is_favorited = db.is_favorited(current_user.id, list_id)
     
     theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
+    adsense_publisher_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', '')
     
     return render_template('view_list.html', 
                          current_list=list_doc, 
                          is_owner=is_owner,
                          is_favorited=is_favorited,
-                         theme=theme)
+                         theme=theme,
+                         adsense_publisher_id=adsense_publisher_id)
 
 @app.route('/lists/<list_id>/edit', methods=['GET', 'POST'])
 @login_required
