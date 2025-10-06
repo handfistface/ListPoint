@@ -34,8 +34,9 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Browse and discover public lists
 - Search lists by name
 - Filter lists by tags
-- Favorite/unfavorite public lists
-- View favorited lists on home page
+- Favorite/unfavorite any list (including own lists) with star icon (☆/⭐)
+- Star icons on landing page and explore page for quick favoriting
+- Favorited lists displayed at top of home page
 - See list owner information
 
 ### UI/UX
@@ -94,6 +95,15 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-06: Enhanced favorites functionality
+  - Added star icons (☆/⭐) for favoriting/unfavoriting on landing and explore pages
+  - Enabled favoriting own lists (private and public)
+  - Reordered landing page to show favorites at the top
+  - Simplified explore page UI with star icons instead of button text
+- 2025-10-06: Improved item management UX
+  - Input textbox stays focused after adding items
+  - Edit Mode in ethereal lists now allows continuous item addition
+  - Fixed delete buttons visibility on regular lists (all items now deletable)
 - 2025-10-05: Added dual-mode system for ethereal lists
   - Check Off Mode: Temporary item checking with visual feedback
   - Edit Mode: Permanent template modification (owner only)
