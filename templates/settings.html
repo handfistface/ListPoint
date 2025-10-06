@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - List Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center mb-6">
+        <a href="{{ url_for('index') }}" class="text-blue-500 hover:underline">← Back</a>
+    </div>
+    
+    <h1 class="text-3xl font-bold mb-8">Account Settings</h1>
+    
+    <div class="card p-6 rounded-lg mb-6">
+        <h2 class="text-2xl font-bold mb-4">Profile</h2>
+        <div class="space-y-2">
+            <p><strong>Email:</strong> {{ current_user.email }}</p>
+            <p><strong>Username:</strong> {{ current_user.username }}</p>
+        </div>
+    </div>
+    
+    <div class="card p-6 rounded-lg mb-6">
+        <h2 class="text-2xl font-bold mb-4">Theme</h2>
+        <div class="flex space-x-4">
+            <button onclick="setTheme('dark')" class="px-4 py-2 rounded {% if theme == 'dark' %}bg-blue-600 text-white{% else %}card{% endif %}">
+                Dark
+            </button>
+            <button onclick="setTheme('light')" class="px-4 py-2 rounded {% if theme == 'light' %}bg-blue-600 text-white{% else %}card{% endif %}">
+                Light
+            </button>
+        </div>
+    </div>
+    
+    <div class="card p-6 rounded-lg">
+        <h2 class="text-2xl font-bold mb-4">Ad-Free Subscription</h2>
+        
+        {% if subscription.get('is_ad_free') %}
+            <div class="mb-4">
+                <div class="bg-green-600 text-white p-4 rounded mb-4">
+                    ✓ You have an active ad-free subscription
+                </div>
+                
+                {% if subscription_info %}
+                    <div class="space-y-2 mb-4" style="color: var(--text-secondary);">
+                        <p><strong>Status:</strong> {{ subscription_info.status }}</p>
+                        <p><strong>Next billing date:</strong> {{ subscription_info.current_period_end.strftime('%B %d, %Y') }}</p>
+                        {% if subscription_info.cancel_at_period_end %}
+                            <p class="text-yellow-500">Your subscription will be cancelled at the end of the billing period.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <div class="flex space-x-4">
+                    <form method="POST" action="{{ url_for('customer_portal') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                            Manage Subscription
+                        </button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('cancel_subscription') }}" onsubmit="return confirm('Are you sure you want to cancel your subscription? Ads will return at the end of your billing period.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">
+                            Cancel Subscription
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <div class="mb-4">
+                <p class="mb-4" style="color: var(--text-secondary);">
+                    Remove all ads from List Tracker for just $5/month. Your subscription will automatically renew each month on the same date you sign up.
+                </p>
+                
+                <div class="bg-blue-600 text-white p-4 rounded mb-4">
+                    <h3 class="font-bold mb-2">Benefits:</h3>
+                    <ul class="list-disc list-inside">
+                        <li>No ads on any page</li>
+                        <li>Support the development of List Tracker</li>
+                        <li>Cancel anytime</li>
+                    </ul>
+                </div>
+                
+                <form method="POST" action="{{ url_for('create_subscription_session') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-green-700">
+                        Subscribe for $5/month
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+async function setTheme(theme) {
+    const response = await fetch('/api/theme', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ theme })
+    });
+    
+    if (response.ok) {
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

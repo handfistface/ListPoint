@@ -9,7 +9,8 @@ from database import Database
 from bson.objectid import ObjectId
 from PIL import Image
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
+import stripe
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -19,6 +20,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
 csrf = CSRFProtect(app)
 db = Database()
+
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -401,6 +404,177 @@ def toggle_favorite(list_id):
     else:
         success = db.add_favorite(current_user.id, list_id)
         return jsonify({'success': success, 'favorited': True})
+
+@app.route('/create-subscription-session', methods=['POST'])
+@login_required
+def create_subscription_session():
+    try:
+        domain = os.getenv('REPLIT_DEV_DOMAIN', 'localhost:5000')
+        
+        user_dict = db.get_user_by_id(current_user.id)
+        stripe_customer_id = user_dict.get('subscription', {}).get('stripe_customer_id')
+        
+        if not stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=current_user.email,
+                metadata={'user_id': current_user.id}
+            )
+            stripe_customer_id = customer.id
+            db.update_user_subscription(
+                current_user.id,
+                stripe_customer_id=stripe_customer_id,
+                stripe_subscription_id=None,
+                is_ad_free=False
+            )
+        
+        checkout_session = stripe.checkout.Session.create(
+            customer=stripe_customer_id,
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Ad-Free Subscription',
+                        'description': 'Remove all ads from List Tracker',
+                    },
+                    'unit_amount': 500,
+                    'recurring': {
+                        'interval': 'month',
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=f'https://{domain}/subscription-success?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'https://{domain}/settings',
+        )
+        
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        flash(f'Error creating subscription: {str(e)}', 'error')
+        return redirect(url_for('settings'))
+
+@app.route('/subscription-success')
+@login_required
+def subscription_success():
+    session_id = request.args.get('session_id')
+    
+    if session_id:
+        try:
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+            subscription_id = checkout_session.subscription
+            
+            db.update_user_subscription(
+                current_user.id,
+                stripe_customer_id=checkout_session.customer,
+                stripe_subscription_id=subscription_id,
+                is_ad_free=True,
+                subscription_start=datetime.utcnow()
+            )
+            
+            flash('Subscription activated! Ads have been removed.', 'success')
+        except Exception as e:
+            flash(f'Error processing subscription: {str(e)}', 'error')
+    
+    return redirect(url_for('settings'))
+
+@app.route('/cancel-subscription', methods=['POST'])
+@login_required
+def cancel_subscription():
+    try:
+        user_dict = db.get_user_by_id(current_user.id)
+        subscription_id = user_dict.get('subscription', {}).get('stripe_subscription_id')
+        
+        if subscription_id:
+            stripe.Subscription.delete(subscription_id)
+            db.cancel_user_subscription(current_user.id)
+            flash('Subscription cancelled successfully.', 'success')
+        else:
+            flash('No active subscription found.', 'error')
+    except Exception as e:
+        flash(f'Error cancelling subscription: {str(e)}', 'error')
+    
+    return redirect(url_for('settings'))
+
+@app.route('/customer-portal', methods=['POST'])
+@login_required
+def customer_portal():
+    try:
+        user_dict = db.get_user_by_id(current_user.id)
+        stripe_customer_id = user_dict.get('subscription', {}).get('stripe_customer_id')
+        
+        if not stripe_customer_id:
+            flash('No subscription found.', 'error')
+            return redirect(url_for('settings'))
+        
+        domain = os.getenv('REPLIT_DEV_DOMAIN', 'localhost:5000')
+        session = stripe.billing_portal.Session.create(
+            customer=stripe_customer_id,
+            return_url=f'https://{domain}/settings',
+        )
+        
+        return redirect(session.url, code=303)
+    except Exception as e:
+        flash(f'Error accessing customer portal: {str(e)}', 'error')
+        return redirect(url_for('settings'))
+
+@app.route('/stripe-webhook', methods=['POST'])
+@csrf.exempt
+def stripe_webhook():
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, os.getenv('STRIPE_WEBHOOK_SECRET', '')
+        )
+    except ValueError:
+        return jsonify({'error': 'Invalid payload'}), 400
+    except stripe.error.SignatureVerificationError:
+        return jsonify({'error': 'Invalid signature'}), 400
+    
+    if event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        customer_id = subscription['customer']
+        
+        user_dict = db.get_user_by_stripe_customer_id(customer_id)
+        if user_dict:
+            db.cancel_user_subscription(str(user_dict['_id']))
+    
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        customer_id = subscription['customer']
+        
+        user_dict = db.get_user_by_stripe_customer_id(customer_id)
+        if user_dict:
+            is_active = subscription['status'] in ['active', 'trialing']
+            if not is_active:
+                db.cancel_user_subscription(str(user_dict['_id']))
+    
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/settings')
+@login_required
+def settings():
+    user_dict = db.get_user_by_id(current_user.id)
+    subscription = user_dict.get('subscription', {})
+    
+    subscription_info = None
+    if subscription.get('stripe_subscription_id'):
+        try:
+            stripe_sub = stripe.Subscription.retrieve(subscription['stripe_subscription_id'])
+            subscription_info = {
+                'status': stripe_sub.status,
+                'current_period_end': datetime.fromtimestamp(stripe_sub.current_period_end),
+                'cancel_at_period_end': stripe_sub.cancel_at_period_end
+            }
+        except:
+            subscription_info = None
+    
+    theme = current_user.preferences.get('theme', 'dark')
+    return render_template('settings.html', 
+                         subscription=subscription,
+                         subscription_info=subscription_info,
+                         theme=theme)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
