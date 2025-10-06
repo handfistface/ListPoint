@@ -15,6 +15,7 @@ class Database:
         self.db.users.create_index([('username', ASCENDING)], unique=True)
         self.db.lists.create_index([('name', ASCENDING)])
         self.db.lists.create_index([('owner_id', ASCENDING)])
+        self.db.lists.create_index([('collaborators', ASCENDING)])
         self.db.lists.create_index([('is_public', ASCENDING)])
         self.db.lists.create_index([('is_ethereal', ASCENDING)])
         self.db.lists.create_index([('tags', ASCENDING)])
@@ -29,6 +30,15 @@ class Database:
     
     def get_user_by_id(self, user_id):
         return self.db.users.find_one({'_id': ObjectId(user_id)})
+    
+    def get_user_by_username(self, username):
+        return self.db.users.find_one({'username': username})
+    
+    def search_users_by_username(self, query, limit=5):
+        users = self.db.users.find({
+            'username': {'$regex': f'^{query}', '$options': 'i'}
+        }).limit(limit)
+        return [{'username': u['username'], '_id': str(u['_id'])} for u in users]
     
     def create_user(self, email, username, password_hash):
         user = {
@@ -82,6 +92,7 @@ class Database:
             'is_ethereal': is_ethereal,
             'tags': tags or [],
             'items': sorted_items,
+            'collaborators': [],
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -312,3 +323,42 @@ class Database:
     
     def get_user_by_stripe_customer_id(self, stripe_customer_id):
         return self.db.users.find_one({'subscription.stripe_customer_id': stripe_customer_id})
+    
+    def add_collaborator(self, list_id, user_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        collaborators = list_doc.get('collaborators', [])
+        user_id_obj = ObjectId(user_id)
+        
+        if user_id_obj in collaborators:
+            return False, 'User is already a collaborator'
+        
+        if user_id_obj == list_doc['owner_id']:
+            return False, 'Owner cannot be added as collaborator'
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$push': {'collaborators': user_id_obj}}
+        )
+        return True, 'Collaborator added successfully'
+    
+    def remove_collaborator(self, list_id, user_id):
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$pull': {'collaborators': ObjectId(user_id)}}
+        )
+        return True, 'Collaborator removed successfully'
+    
+    def get_collaborated_lists(self, user_id):
+        return list(self.db.lists.find({
+            'collaborators': ObjectId(user_id)
+        }).sort('created_at', -1))
+    
+    def is_collaborator(self, user_id, list_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False
+        collaborators = list_doc.get('collaborators', [])
+        return ObjectId(user_id) in collaborators
