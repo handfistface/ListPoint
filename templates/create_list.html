@@ -131,6 +131,10 @@
         
         setupCanvasEvents();
         drawCropInterface();
+        
+        // Lock body scroll
+        document.body.style.overflow = 'hidden';
+        
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
@@ -281,6 +285,10 @@
         const modal = document.getElementById('crop-modal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        
+        // Unlock body scroll
+        document.body.style.overflow = '';
+        
         thumbnailInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
         fileNameSpan.style.color = 'var(--text-secondary)';
@@ -290,6 +298,9 @@
         const modal = document.getElementById('crop-modal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        
+        // Unlock body scroll
+        document.body.style.overflow = '';
         
         fileNameSpan.textContent = 'Processing image...';
         fileNameSpan.style.color = '#fbbf24';
