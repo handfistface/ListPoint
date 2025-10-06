@@ -60,3 +60,4 @@ externalPort = 5000
 
 [deployment]
 deploymentTarget = "cloudrun"
+run = ["sh", "-c", "bash start_mongo.sh"]
