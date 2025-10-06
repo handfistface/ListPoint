@@ -65,7 +65,7 @@ def index():
         favorited_lists = db.get_favorited_lists(current_user.id)
         
         for lst in my_lists:
-            lst['is_favorited'] = False
+            lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
         
         for lst in favorited_lists:
             owner = db.get_user_by_id(str(lst['owner_id']))
