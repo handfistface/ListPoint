@@ -86,7 +86,7 @@
                             <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
                         </div>
                         {% if is_owner %}
-                            <button class="item-delete-btn hidden text-red-500 hover:text-red-700" onclick="deleteItem('{{ item._id }}', '{{ item.text }}')">
+                            <button class="item-delete-btn {% if current_list.is_ethereal %}hidden{% endif %} text-red-500 hover:text-red-700" onclick="deleteItem('{{ item._id }}', '{{ item.text }}')">
                                 ×
                             </button>
                         {% endif %}
@@ -269,9 +269,9 @@ async function addItem() {
                        onchange="toggleItemChecked('${result.item_id}')">
                 <span class="item-text">${text}</span>
             </div>
-            <button class="item-delete-btn ${deleteHidden} text-red-500 hover:text-red-700" onclick="deleteItem('${result.item_id}', '${text}')">
+            ${isOwner ? `<button class="item-delete-btn ${deleteHidden} text-red-500 hover:text-red-700" onclick="deleteItem('${result.item_id}', '${text}')">
                 ×
-            </button>
+            </button>` : ''}
         `;
         
         const items = Array.from(itemsList.querySelectorAll('.item-row'));
