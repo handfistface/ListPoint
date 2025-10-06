@@ -263,12 +263,12 @@ def add_item(list_id):
     if not item_text:
         return jsonify({'success': False, 'message': 'Item text is required'}), 400
     
-    success, message = db.add_item_to_list(list_id, item_text)
+    success, message, item_id = db.add_item_to_list(list_id, item_text)
     
     if success:
         db.update_autocomplete_cache(current_user.id, item_text)
     
-    return jsonify({'success': success, 'message': message})
+    return jsonify({'success': success, 'message': message, 'item_id': item_id})
 
 @app.route('/api/lists/<list_id>/items/<item_id>', methods=['DELETE'])
 @login_required
@@ -317,12 +317,12 @@ def add_item_to_original(list_id):
     if not item_text:
         return jsonify({'success': False, 'message': 'Item text is required'}), 400
     
-    success, message = db.add_item_to_original(list_id, item_text)
+    success, message, item_id = db.add_item_to_original(list_id, item_text)
     
     if success:
         db.update_autocomplete_cache(current_user.id, item_text)
     
-    return jsonify({'success': success, 'message': message})
+    return jsonify({'success': success, 'message': message, 'item_id': item_id})
 
 @app.route('/api/lists/<list_id>/original/items/<item_id>', methods=['DELETE'])
 @login_required

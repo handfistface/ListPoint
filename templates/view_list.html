@@ -246,9 +246,50 @@ async function addItem() {
     if (result.success) {
         showModal('✓ Item added successfully', 'success');
         itemInput.value = '';
-        setTimeout(() => location.reload(), 1000);
+        
+        const itemsList = document.getElementById('items-list');
+        const emptyMessage = itemsList.querySelector('p');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        const newItemDiv = document.createElement('div');
+        newItemDiv.className = 'flex items-center justify-between p-3 rounded hover:bg-opacity-50 item-row';
+        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
+        newItemDiv.setAttribute('data-item-id', result.item_id);
+        newItemDiv.setAttribute('data-item-text', text);
+        newItemDiv.setAttribute('data-checked', 'false');
+        
+        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
+        const deleteHidden = (isEthereal && currentMode === 'checkOff') ? 'hidden' : '';
+        
+        newItemDiv.innerHTML = `
+            <div class="flex items-center gap-3 flex-1">
+                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
+                       onchange="toggleItemChecked('${result.item_id}')">
+                <span class="item-text">${text}</span>
+            </div>
+            <button class="item-delete-btn ${deleteHidden} text-red-500 hover:text-red-700" onclick="deleteItem('${result.item_id}', '${text}')">
+                ×
+            </button>
+        `;
+        
+        const items = Array.from(itemsList.querySelectorAll('.item-row'));
+        const insertIndex = items.findIndex(item => {
+            const itemText = item.querySelector('.item-text').textContent;
+            return itemText.toLowerCase() > text.toLowerCase();
+        });
+        
+        if (insertIndex === -1) {
+            itemsList.appendChild(newItemDiv);
+        } else {
+            itemsList.insertBefore(newItemDiv, items[insertIndex]);
+        }
+        
+        itemInput.focus();
     } else {
         showModal(`✗ ${result.message}`, 'error');
+        itemInput.focus();
     }
 }
 
@@ -335,7 +376,20 @@ async function restoreList() {
     if (result.success) {
         const message = isCheckOffMode ? '✓ All items unchecked' : '✓ List restored successfully';
         showModal(message, 'success');
-        setTimeout(() => location.reload(), 1000);
+        
+        if (isCheckOffMode) {
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.querySelectorAll('.item-text').forEach(text => {
+                text.classList.remove('line-through');
+            });
+            document.querySelectorAll('.item-row').forEach(row => {
+                row.classList.remove('opacity-50');
+            });
+        } else {
+            setTimeout(() => location.reload(), 1000);
+        }
     } else {
         showModal('✗ Failed to restore list', 'error');
     }

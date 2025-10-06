@@ -99,11 +99,11 @@ class Database:
     def add_item_to_list(self, list_id, item_text):
         list_doc = self.get_list_by_id(list_id)
         if not list_doc:
-            return False, 'List not found'
+            return False, 'List not found', None
         
         for item in list_doc['items']:
             if item['text'].lower() == item_text.lower():
-                return False, 'Item already exists'
+                return False, 'Item already exists', None
         
         new_item = {
             '_id': ObjectId(),
@@ -119,7 +119,7 @@ class Database:
             {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
         )
         
-        return True, 'Item added successfully'
+        return True, 'Item added successfully', str(new_item['_id'])
     
     def remove_item_from_list(self, list_id, item_id):
         self.db.lists.update_one(
@@ -176,12 +176,12 @@ class Database:
     def add_item_to_original(self, list_id, item_text):
         list_doc = self.get_list_by_id(list_id)
         if not list_doc or not list_doc.get('is_ethereal'):
-            return False, 'Not an ethereal list'
+            return False, 'Not an ethereal list', None
         
         original_items = list_doc.get('original_items', [])
         for item in original_items:
             if item['text'].lower() == item_text.lower():
-                return False, 'Item already exists'
+                return False, 'Item already exists', None
         
         new_item = {
             '_id': ObjectId(),
@@ -205,7 +205,7 @@ class Database:
                 'updated_at': datetime.utcnow()
             }}
         )
-        return True, 'Item added to original'
+        return True, 'Item added to original', str(new_item['_id'])
     
     def remove_item_from_original(self, list_id, item_id):
         list_doc = self.get_list_by_id(list_id)
