@@ -54,11 +54,11 @@
                 Invite users to help manage this list. Collaborators can add items and view private lists.
             </p>
             
-            <div class="flex space-x-2 mb-3">
+            <div class="flex space-x-2 mb-2">
                 <input 
                     type="text" 
                     id="collaborator-search" 
-                    placeholder="Search username..." 
+                    placeholder="Search usernames" 
                     class="flex-1 p-2 rounded border" 
                     style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
                 >
@@ -70,6 +70,8 @@
                     Search
                 </button>
             </div>
+            
+            <div id="collaborator-message" class="mb-2 text-sm hidden"></div>
             
             <div id="search-results" class="mb-3 space-y-1"></div>
             
@@ -131,6 +133,13 @@
     
     let searchTimeout;
     const searchInput = document.getElementById('collaborator-search');
+    const existingCollaborators = new Set();
+    
+    // Track existing collaborators
+    document.querySelectorAll('#collaborators-list [id^="collab-"]').forEach(el => {
+        const username = el.querySelector('span').textContent.trim();
+        existingCollaborators.add(username.toLowerCase());
+    });
     
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
@@ -150,6 +159,18 @@
         }
     });
     
+    function showMessage(text, isSuccess = true) {
+        const msgDiv = document.getElementById('collaborator-message');
+        msgDiv.textContent = text;
+        msgDiv.className = `mb-2 text-sm ${isSuccess ? 'text-green-500' : 'text-red-500'}`;
+        msgDiv.classList.remove('hidden');
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            msgDiv.classList.add('hidden');
+        }, 3000);
+    }
+    
     async function searchUsers() {
         const query = searchInput.value.trim();
         const resultsDiv = document.getElementById('search-results');
@@ -166,18 +187,27 @@
             const data = await response.json();
             
             if (data.users && data.users.length > 0) {
-                resultsDiv.innerHTML = data.users.map(user => `
-                    <div class="flex items-center justify-between p-2 rounded hover:opacity-80" style="background-color: var(--bg-primary);">
-                        <span>${user.username}</span>
-                        <button 
-                            type="button" 
-                            onclick="addCollaborator('${user.username}')" 
-                            class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                        >
-                            Add
-                        </button>
-                    </div>
-                `).join('');
+                // Filter out existing collaborators
+                const availableUsers = data.users.filter(user => 
+                    !existingCollaborators.has(user.username.toLowerCase())
+                );
+                
+                if (availableUsers.length > 0) {
+                    resultsDiv.innerHTML = availableUsers.map(user => `
+                        <div class="flex items-center justify-between p-2 rounded hover:opacity-80" style="background-color: var(--bg-primary);">
+                            <span>${user.username}</span>
+                            <button 
+                                type="button" 
+                                onclick="addCollaborator('${user.username}')" 
+                                class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                            >
+                                Add
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<p class="text-sm" style="color: var(--text-secondary);">All matching users are already collaborators</p>';
+                }
             } else {
                 resultsDiv.innerHTML = '<p class="text-sm" style="color: var(--text-secondary);">No users found</p>';
             }
@@ -198,7 +228,7 @@
             
             if (!response.ok) {
                 const data = await response.json();
-                alert(data.message || 'Failed to add collaborator');
+                showMessage(data.message || 'Failed to add collaborator', false);
                 return;
             }
             
@@ -229,17 +259,21 @@
                 `;
                 collaboratorsList.appendChild(collabDiv);
                 
-                // Clear search
-                searchInput.value = '';
-                document.getElementById('search-results').innerHTML = '';
+                // Add to existing collaborators set
+                existingCollaborators.add(username.toLowerCase());
                 
-                alert('Collaborator added successfully!');
+                // Clear search results and show success message
+                document.getElementById('search-results').innerHTML = '';
+                showMessage('Collaborator added successfully!');
+                
+                // Keep input focused
+                searchInput.focus();
             } else {
-                alert(data.message || 'Failed to add collaborator');
+                showMessage(data.message || 'Failed to add collaborator', false);
             }
         } catch (error) {
             console.error('Error adding collaborator:', error);
-            alert('Error adding collaborator: ' + error.message);
+            showMessage('Error adding collaborator: ' + error.message, false);
         }
     }
     
@@ -247,6 +281,10 @@
         if (!confirm('Remove this collaborator?')) return;
         
         try {
+            // Get username before removing
+            const collabElement = document.getElementById(`collab-${userId}`);
+            const username = collabElement.querySelector('span').textContent.trim();
+            
             const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
                 method: 'DELETE'
             });
@@ -254,19 +292,22 @@
             const data = await response.json();
             
             if (data.success) {
-                document.getElementById(`collab-${userId}`).remove();
+                collabElement.remove();
+                
+                // Remove from existing collaborators set
+                existingCollaborators.delete(username.toLowerCase());
                 
                 const collaboratorsList = document.getElementById('collaborators-list');
                 if (collaboratorsList.children.length === 0) {
                     collaboratorsList.innerHTML = '<p class="text-sm" style="color: var(--text-secondary);">No collaborators yet</p>';
                 }
                 
-                alert('Collaborator removed successfully!');
+                showMessage('Collaborator removed successfully!');
             } else {
-                alert(data.message || 'Failed to remove collaborator');
+                showMessage(data.message || 'Failed to remove collaborator', false);
             }
         } catch (error) {
-            alert('Error removing collaborator');
+            showMessage('Error removing collaborator', false);
         }
     }
     
