@@ -38,6 +38,13 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Star icons on landing page and explore page for quick favoriting
 - Favorited lists displayed at top of home page
 - See list owner information
+- **Collaborative Lists**: Invite other users to collaborate on lists
+  - Owner can add/remove collaborators via edit list page
+  - Async username search with privacy protection (minimal user info displayed)
+  - Collaborators can view private lists they're invited to
+  - Collaborators can add items to lists (including check lists)
+  - Collaborated lists displayed in separate section on landing page
+  - Collaborative lists can be favorited/unfavorited like other lists
 
 ### UI/UX
 - Dark mode (default) and light mode with toggle
@@ -74,10 +81,11 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Fetch API for AJAX calls
 
 ### Database
-- MongoDB (local instance)
+- MongoDB (remote instance via MongoDB Atlas)
 - Collections: users, lists, favorites, autocomplete_cache
 - Proper indexing on frequently queried fields
 - User subscription data includes: is_ad_free, stripe_customer_id, stripe_subscription_id, subscription_start, subscription_end
+- List collaboration data: collaborators array stores user IDs with access to the list
 
 ## Project Structure
 ```
@@ -122,6 +130,19 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for production
 
 ## Recent Changes
+- 2025-10-06: Implemented collaborative lists feature
+  - Added database schema support for list collaborators (array of user IDs)
+  - Created API endpoints for searching users, adding/removing collaborators
+  - Updated list permissions to allow collaborators to view private lists
+  - Collaborators can add items to both standard and check lists
+  - Added collaborator management UI to edit list page with async search
+  - Username search protects privacy by not exposing sensitive user information
+  - Collaborated lists displayed in dedicated section on landing page
+  - Collaborative lists support favoriting functionality
+- 2025-10-06: Migrated to remote MongoDB and configured for Autoscale deployment
+  - Switched from local MongoDB to MongoDB Atlas (remote database)
+  - Configured Gunicorn for production deployment
+  - Updated deployment configuration for Autoscale (stateless deployment)
 - 2025-10-06: Implemented revenue system with ads and subscriptions
   - Added Google AdSense banner ads to landing and list view pages
   - Integrated Stripe for $5/month ad removal subscriptions
