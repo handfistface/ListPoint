@@ -103,6 +103,11 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-06: Fixed crop modal drag functionality
+  - Moved mousemove/mouseup listeners from canvas to document
+  - Prevents drag interruption when mouse leaves canvas bounds
+  - Added body scroll lock (overflow: hidden) when modal is open
+  - Proper event listener cleanup on modal close
 - 2025-10-06: Interactive image cropping for thumbnails
   - Modal-based crop interface with visual rectangle overlay
   - Drag rectangle to reposition crop area

@@ -192,30 +192,53 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            console.log('Mousedown at', x, y, 'cropArea:', cropArea);
-            
             resizeHandle = getResizeHandle(x, y);
             if (resizeHandle) {
                 isResizing = true;
-                console.log('Resizing handle:', resizeHandle);
             } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
                        y >= cropArea.y && y <= cropArea.y + cropArea.height) {
                 isDragging = true;
-                console.log('Dragging started');
             }
             
             dragStart = { x, y };
         });
 
+        // Use document for mousemove and mouseup so they work even when mouse leaves canvas
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        // Update cursor when hovering over canvas
         canvas.addEventListener('mousemove', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            if (isDragging || isResizing) return;
             
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            if (isResizing && resizeHandle) {
+            const handle = getResizeHandle(x, y);
+            if (handle) {
+                canvas.style.cursor = handle.includes('n') ? 
+                    (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
+                    (handle.includes('w') ? 'sw-resize' : 'se-resize');
+            } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                       y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+                canvas.style.cursor = 'move';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        });
+    }
+    
+    function handleMouseMove(e) {
+        if (!isDragging && !isResizing) return;
+        
+        e.preventDefault();
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        if (isResizing && resizeHandle) {
                 const dx = x - dragStart.x;
                 const dy = y - dragStart.y;
                 const aspectRatio = 160 / 300;
@@ -251,40 +274,29 @@
                 const dx = x - dragStart.x;
                 const dy = y - dragStart.y;
                 
-                console.log('Dragging: dx=', dx, 'dy=', dy);
-                
                 cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
                 cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
                 
                 dragStart = { x, y };
                 drawCropInterface();
-            } else {
-                // Update cursor based on position
-                const handle = getResizeHandle(x, y);
-                if (handle) {
-                    canvas.style.cursor = handle.includes('n') ? 
-                        (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
-                        (handle.includes('w') ? 'sw-resize' : 'se-resize');
-                } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-                           y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-                    canvas.style.cursor = 'move';
-                } else {
-                    canvas.style.cursor = 'default';
-                }
             }
-        });
-
-        canvas.addEventListener('mouseup', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            isDragging = false;
-            isResizing = false;
-            resizeHandle = null;
-        });
+    }
+    
+    function handleMouseUp(e) {
+        isDragging = false;
+        isResizing = false;
+        resizeHandle = null;
+        canvas.style.cursor = 'default';
+    }
+    
+    function cleanupCanvasEvents() {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
     }
 
     function cancelCrop() {
+        cleanupCanvasEvents();
+        
         const modal = document.getElementById('crop-modal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
@@ -298,6 +310,8 @@
     }
 
     async function applyCrop() {
+        cleanupCanvasEvents();
+        
         const modal = document.getElementById('crop-modal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
