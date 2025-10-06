@@ -4,8 +4,12 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
+    <div class="flex items-center mb-4">
+        <a href="{{ url_for('index') }}" class="text-blue-500 hover:underline">← Back</a>
+    </div>
+    
     {% if not current_user.is_authenticated or not current_user.subscription.get('is_ad_free', False) %}
-    <div class="mb-6">
+    <div class="mb-4">
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"
              crossorigin="anonymous"></script>
         <ins class="adsbygoogle"
@@ -19,10 +23,6 @@
         </script>
     </div>
     {% endif %}
-    
-    <div class="flex items-center mb-4">
-        <a href="{{ url_for('index') }}" class="text-blue-500 hover:underline">← Back</a>
-    </div>
     
     <div class="flex justify-between items-start mb-6">
         <div>
