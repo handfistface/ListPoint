@@ -2,9 +2,7 @@
 
 {% block content %}
 {% if not current_user.is_authenticated or not current_user.subscription.get('is_ad_free', False) %}
-<div class="max-w-6xl mx-auto mb-6">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_publisher_id }}"
-         crossorigin="anonymous"></script>
+<div class="ad-container max-w-6xl mx-auto mb-6" style="display:none;min-height:0;overflow:hidden;">
     <ins class="adsbygoogle"
          style="display:block"
          data-ad-client="{{ adsense_publisher_id }}"

@@ -143,6 +143,31 @@
         document.addEventListener('DOMContentLoaded', () => {
             const theme = document.documentElement.getAttribute('data-theme');
             document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+            
+            // Handle AdSense ad containers
+            const adContainers = document.querySelectorAll('.ad-container');
+            adContainers.forEach(container => {
+                const adSlot = container.querySelector('.adsbygoogle');
+                if (adSlot) {
+                    // Check for ad load using MutationObserver
+                    const observer = new MutationObserver((mutations) => {
+                        const status = adSlot.getAttribute('data-ad-status');
+                        if (status === 'filled') {
+                            container.style.display = 'block';
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(adSlot, { attributes: true });
+                    
+                    // Timeout fallback: if ad doesn't load in 2 seconds, keep it hidden
+                    setTimeout(() => {
+                        const status = adSlot.getAttribute('data-ad-status');
+                        if (status !== 'filled') {
+                            observer.disconnect();
+                        }
+                    }, 2000);
+                }
+            });
         });
     </script>
     {% block extra_js %}{% endblock %}
