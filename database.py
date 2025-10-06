@@ -325,24 +325,27 @@ class Database:
         return self.db.users.find_one({'subscription.stripe_customer_id': stripe_customer_id})
     
     def add_collaborator(self, list_id, user_id):
-        list_doc = self.get_list_by_id(list_id)
-        if not list_doc:
-            return False, 'List not found'
-        
-        collaborators = list_doc.get('collaborators', [])
-        user_id_obj = ObjectId(user_id)
-        
-        if user_id_obj in collaborators:
-            return False, 'User is already a collaborator'
-        
-        if user_id_obj == list_doc['owner_id']:
-            return False, 'Owner cannot be added as collaborator'
-        
-        self.db.lists.update_one(
-            {'_id': ObjectId(list_id)},
-            {'$push': {'collaborators': user_id_obj}}
-        )
-        return True, 'Collaborator added successfully'
+        try:
+            list_doc = self.get_list_by_id(list_id)
+            if not list_doc:
+                return False, 'List not found'
+            
+            collaborators = list_doc.get('collaborators', [])
+            user_id_obj = ObjectId(user_id)
+            
+            if user_id_obj in collaborators:
+                return False, 'User is already a collaborator'
+            
+            if user_id_obj == list_doc['owner_id']:
+                return False, 'Owner cannot be added as collaborator'
+            
+            self.db.lists.update_one(
+                {'_id': ObjectId(list_id)},
+                {'$push': {'collaborators': user_id_obj}}
+            )
+            return True, 'Collaborator added successfully'
+        except Exception as e:
+            return False, f'Database error: {str(e)}'
     
     def remove_collaborator(self, list_id, user_id):
         self.db.lists.update_one(
