@@ -52,7 +52,7 @@ class ListForm(FlaskForm):
     name = StringField('List Name', validators=[DataRequired(), Length(min=1, max=100)])
     tags = StringField('Tags (comma-separated)')
     is_public = BooleanField('Make Public')
-    is_ethereal = BooleanField('Ethereal List')
+    is_ethereal = BooleanField('Check List')
 
 @app.before_request
 def make_session_permanent():

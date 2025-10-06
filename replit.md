@@ -15,7 +15,7 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Create lists with name, thumbnail image, tags, and visibility settings
 - Two list types:
   - **Standard Lists**: Permanent item management
-  - **Ethereal Lists**: Template-style lists with two modes:
+  - **Check Lists**: Template-style lists with two modes:
     - **Check Off Mode** (default): Check items off temporarily, restore with "Uncheck All"
     - **Edit Mode** (owner only): Modify original template items permanently
 - Edit list properties (name, tags, visibility, thumbnail)
@@ -28,7 +28,7 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Autocomplete suggestions from user's previous items
 - Success/failure modal feedback on add operations
 - Undo system for deleted items (stack-based, max 10 items)
-- Ethereal list restoration to original state
+- Check list restoration to original state
 
 ### Social Features
 - Browse and discover public lists
@@ -135,25 +135,25 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
   - Simplified explore page UI with star icons instead of button text
 - 2025-10-06: Improved item management UX
   - Input textbox stays focused after adding items
-  - Edit Mode in ethereal lists now allows continuous item addition
+  - Edit Mode in check lists now allows continuous item addition
   - Fixed delete buttons visibility on regular lists (all items now deletable)
-- 2025-10-05: Added dual-mode system for ethereal lists
+- 2025-10-05: Added dual-mode system for check lists
   - Check Off Mode: Temporary item checking with visual feedback
   - Edit Mode: Permanent template modification (owner only)
   - Mode toggle button with context-aware restore functionality
 - 2025-10-05: Initial implementation of all MVP features
   - Complete user authentication system
   - List and item management with sorting
-  - Ethereal list functionality
+  - Check list functionality
   - Social discovery and favorites
   - Theme toggle system
   - Image upload handling
 
 ## Architecture Notes
 - All items automatically sort alphabetically on addition
-- Ethereal lists store original_items snapshot for restoration
+- Check lists store original_items snapshot for restoration
 - Items have 'checked' field for check-off mode tracking
-- Ethereal list modes:
+- Check list modes:
   - Check Off Mode: Items displayed with checkboxes, add input hidden, restore unchecks all
   - Edit Mode: Items displayed with delete buttons, add input visible, restore resets to original_items
 - Image cropping and compression flow:
