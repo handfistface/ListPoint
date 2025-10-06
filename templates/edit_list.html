@@ -62,7 +62,69 @@
     const fileNameSpan = document.getElementById('file-name');
     const maxSize = 500 * 1024; // 500KB in bytes
 
-    thumbnailInput.addEventListener('change', function(e) {
+    async function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+                    let quality = 0.9;
+                    
+                    // Start with reasonable max dimensions
+                    const maxDimension = 1200;
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = (height / width) * maxDimension;
+                            width = maxDimension;
+                        } else {
+                            width = (width / height) * maxDimension;
+                            height = maxDimension;
+                        }
+                    }
+                    
+                    function tryCompress() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            if (blob.size <= maxSize || quality <= 0.1) {
+                                // Success or can't compress more
+                                const compressedFile = new File([blob], file.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                // Try reducing quality or dimensions
+                                if (quality > 0.5) {
+                                    quality -= 0.1;
+                                } else {
+                                    width = Math.floor(width * 0.9);
+                                    height = Math.floor(height * 0.9);
+                                    quality = 0.8;
+                                }
+                                tryCompress();
+                            }
+                        }, 'image/jpeg', quality);
+                    }
+                    
+                    tryCompress();
+                };
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+
+    thumbnailInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         
         if (!file) {
@@ -71,18 +133,42 @@
             return;
         }
 
-        // Check file size
-        if (file.size > maxSize) {
-            fileNameSpan.textContent = `File too large! (${(file.size / 1024).toFixed(0)}KB) Max: 500KB`;
-            fileNameSpan.style.color = '#ef4444'; // red
-            thumbnailInput.value = ''; // Clear the selection
-            alert('Image is too large! Please choose an image smaller than 500KB.');
+        // Check if it's an image
+        if (!file.type.startsWith('image/')) {
+            fileNameSpan.textContent = 'Please select an image file';
+            fileNameSpan.style.color = '#ef4444';
+            thumbnailInput.value = '';
             return;
         }
 
-        // File is valid
-        fileNameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(0)}KB)`;
-        fileNameSpan.style.color = '#10b981'; // green
+        const originalSize = file.size;
+        
+        // Show processing message
+        fileNameSpan.textContent = 'Compressing image...';
+        fileNameSpan.style.color = '#fbbf24'; // yellow
+        
+        try {
+            let finalFile = file;
+            
+            // Only compress if needed
+            if (file.size > maxSize) {
+                finalFile = await compressImage(file);
+            }
+            
+            // Create a new FileList and assign it to the input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(finalFile);
+            thumbnailInput.files = dataTransfer.files;
+            
+            // Show result
+            const compressed = finalFile.size < originalSize;
+            fileNameSpan.textContent = `${file.name} (${(finalFile.size / 1024).toFixed(0)}KB)${compressed ? ' - compressed' : ''}`;
+            fileNameSpan.style.color = '#10b981'; // green
+        } catch (error) {
+            fileNameSpan.textContent = 'Error processing image';
+            fileNameSpan.style.color = '#ef4444';
+            thumbnailInput.value = '';
+        }
     });
 </script>
 {% endblock %}

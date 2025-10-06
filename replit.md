@@ -45,7 +45,11 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Responsive design with TailwindCSS
 - Clean, minimalistic interface
 - Auto-dismissing notification modals
-- Image upload with thumbnail generation (max 500KB)
+- Image upload with automatic compression (client-side, max 500KB)
+  - Custom file picker with "Choose File" button
+  - Automatic image resizing and quality reduction for large files
+  - Visual feedback during compression process
+  - Shows final file size and compression status
 
 ## Technical Stack
 
@@ -95,6 +99,12 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-06: Automatic image compression for thumbnails
+  - Client-side image compression using Canvas API
+  - Automatically resizes and compresses images over 500KB
+  - Progressive quality reduction until file fits size limit
+  - Visual feedback shows compression status and final file size
+  - Custom file picker button prevents browser overlay issues
 - 2025-10-06: Enhanced favorites functionality
   - Added star icons (☆/⭐) for favoriting/unfavoriting on landing and explore pages
   - Enabled favoriting own lists (private and public)
@@ -123,6 +133,11 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - Ethereal list modes:
   - Check Off Mode: Items displayed with checkboxes, add input hidden, restore unchecks all
   - Edit Mode: Items displayed with delete buttons, add input visible, restore resets to original_items
+- Image compression flow:
+  - Client-side compression using HTML5 Canvas API
+  - Progressive quality reduction (0.9 to 0.1) and dimension scaling (90% steps)
+  - Converts all uploads to JPEG format for optimal compression
+  - Server enforces 500KB max with proper error handling
 - Autocomplete cache tracks user's item history with frequency
 - CSRF protection enabled on all forms
 - Password hashing using Werkzeug's generate_password_hash
