@@ -78,6 +78,7 @@ def index():
     if current_user.is_authenticated:
         my_lists = db.get_lists_by_owner(current_user.id)
         favorited_lists = db.get_favorited_lists(current_user.id)
+        collaborated_lists = db.get_collaborated_lists(current_user.id)
         
         for lst in my_lists:
             lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
@@ -87,9 +88,15 @@ def index():
             lst['owner_username'] = owner['username'] if owner else 'Unknown'
             lst['is_favorited'] = True
         
+        for lst in collaborated_lists:
+            owner = db.get_user_by_id(str(lst['owner_id']))
+            lst['owner_username'] = owner['username'] if owner else 'Unknown'
+            lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
+        
         return render_template('index.html', 
                              my_lists=my_lists, 
                              favorited_lists=favorited_lists,
+                             collaborated_lists=collaborated_lists,
                              theme=current_user.preferences.get('theme', 'dark'))
     return render_template('landing.html')
 
@@ -191,8 +198,9 @@ def view_list(list_id):
         return redirect(url_for('index'))
     
     is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
     
-    if not list_doc['is_public'] and not is_owner:
+    if not list_doc['is_public'] and not is_owner and not is_collaborator:
         flash('This list is private', 'error')
         return redirect(url_for('index'))
     
@@ -209,6 +217,7 @@ def view_list(list_id):
     return render_template('view_list.html', 
                          current_list=list_doc, 
                          is_owner=is_owner,
+                         is_collaborator=is_collaborator,
                          is_favorited=is_favorited,
                          theme=theme,
                          adsense_publisher_id=adsense_publisher_id)
@@ -272,7 +281,10 @@ def delete_list(list_id):
 @login_required
 def add_item(list_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc or (not is_owner and not is_collaborator):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     data = request.get_json()
@@ -316,7 +328,10 @@ def toggle_item(list_id, item_id):
     if not list_doc:
         return jsonify({'success': False, 'message': 'List not found'}), 404
     
-    if not list_doc['is_public'] and (not current_user.is_authenticated or str(list_doc['owner_id']) != current_user.id):
+    is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc['is_public'] and not is_owner and not is_collaborator:
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     success, message = db.toggle_item_checked(list_id, item_id)
@@ -551,6 +566,49 @@ def stripe_webhook():
                 db.cancel_user_subscription(str(user_dict['_id']))
     
     return jsonify({'status': 'success'}), 200
+
+@app.route('/api/search_users')
+@login_required
+def search_users():
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify({'users': []})
+    
+    users = db.search_users_by_username(query, limit=5)
+    return jsonify({'users': users})
+
+@app.route('/api/lists/<list_id>/collaborators', methods=['POST'])
+@login_required
+def add_collaborator(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required'}), 400
+    
+    user = db.get_user_by_username(username)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+    
+    success, message = db.add_collaborator(list_id, str(user['_id']))
+    if success:
+        return jsonify({'success': True, 'message': message, 'user': {'username': user['username'], '_id': str(user['_id'])}})
+    else:
+        return jsonify({'success': False, 'message': message}), 400
+
+@app.route('/api/lists/<list_id>/collaborators/<user_id>', methods=['DELETE'])
+@login_required
+def remove_collaborator(list_id, user_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    success, message = db.remove_collaborator(list_id, user_id)
+    return jsonify({'success': success, 'message': message})
 
 @app.route('/settings')
 @login_required
