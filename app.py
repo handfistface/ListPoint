@@ -601,25 +601,31 @@ def search_users():
 @app.route('/api/lists/<list_id>/collaborators', methods=['POST'])
 @login_required
 def add_collaborator(list_id):
-    list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
-        return jsonify({'success': False, 'message': 'Access denied'}), 403
-    
-    data = request.get_json()
-    username = data.get('username', '').strip()
-    
-    if not username:
-        return jsonify({'success': False, 'message': 'Username is required'}), 400
-    
-    user = db.get_user_by_username(username)
-    if not user:
-        return jsonify({'success': False, 'message': 'User not found'}), 404
-    
-    success, message = db.add_collaborator(list_id, str(user['_id']))
-    if success:
-        return jsonify({'success': True, 'message': message, 'user': {'username': user['username'], '_id': str(user['_id'])}})
-    else:
-        return jsonify({'success': False, 'message': message}), 400
+    try:
+        list_doc = db.get_list_by_id(list_id)
+        if not list_doc or str(list_doc['owner_id']) != current_user.id:
+            return jsonify({'success': False, 'message': 'Access denied'}), 403
+        
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        
+        if not username:
+            return jsonify({'success': False, 'message': 'Username is required'}), 400
+        
+        user = db.get_user_by_username(username)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        success, message = db.add_collaborator(list_id, str(user['_id']))
+        if success:
+            return jsonify({'success': True, 'message': message, 'user': {'username': user['username'], '_id': str(user['_id'])}})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+    except Exception as e:
+        print(f"Error adding collaborator: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/lists/<list_id>/collaborators/<user_id>', methods=['DELETE'])
 @login_required

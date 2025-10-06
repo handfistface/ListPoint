@@ -196,6 +196,12 @@
                 body: JSON.stringify({ username })
             });
             
+            if (!response.ok) {
+                const data = await response.json();
+                alert(data.message || 'Failed to add collaborator');
+                return;
+            }
+            
             const data = await response.json();
             
             if (data.success) {
@@ -232,7 +238,8 @@
                 alert(data.message || 'Failed to add collaborator');
             }
         } catch (error) {
-            alert('Error adding collaborator');
+            console.error('Error adding collaborator:', error);
+            alert('Error adding collaborator: ' + error.message);
         }
     }
     
