@@ -181,6 +181,9 @@
 
     function setupCanvasEvents() {
         canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -197,6 +200,9 @@
         });
 
         canvas.addEventListener('mousemove', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -258,7 +264,10 @@
             }
         });
 
-        canvas.addEventListener('mouseup', () => {
+        canvas.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             isDragging = false;
             isResizing = false;
             resizeHandle = null;
