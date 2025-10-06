@@ -57,3 +57,6 @@ externalPort = 3001
 [[ports]]
 localPort = 46467
 externalPort = 5000
+
+[deployment]
+deploymentTarget = "cloudrun"

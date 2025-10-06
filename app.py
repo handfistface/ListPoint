@@ -434,7 +434,7 @@ def create_subscription_session():
                     'currency': 'usd',
                     'product_data': {
                         'name': 'Ad-Free Subscription',
-                        'description': 'Remove all ads from List Tracker',
+                        'description': 'Remove all ads from List Point',
                     },
                     'unit_amount': 500,
                     'recurring': {

@@ -1,4 +1,4 @@
-# List Tracker Web App
+# List Point Web App
 
 ## Overview
 A minimalistic Flask-based web application for creating, managing, and sharing lists with social features. Built with MongoDB, featuring automatic alphabetical sorting, ethereal lists (restorable templates), and a clean dark/light mode interface.
