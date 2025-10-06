@@ -65,6 +65,7 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - PyMongo for MongoDB interaction
 - Werkzeug for password hashing
 - Pillow for image processing
+- Stripe for payment processing and subscriptions
 
 ### Frontend
 - Jinja2 templating
@@ -76,6 +77,7 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - MongoDB (local instance)
 - Collections: users, lists, favorites, autocomplete_cache
 - Proper indexing on frequently queried fields
+- User subscription data includes: is_ad_free, stripe_customer_id, stripe_subscription_id, subscription_start, subscription_end
 
 ## Project Structure
 ```
@@ -92,17 +94,41 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 │   ├── create_list.html
 │   ├── edit_list.html
 │   ├── view_list.html
-│   └── explore.html
+│   ├── explore.html
+│   └── settings.html
 ├── static/
 │   └── uploads/          # User-uploaded thumbnails
 └── data/                 # MongoDB data directory
 ```
 
+### Revenue System
+- **Google AdSense Integration**: Banner ads displayed on landing and list view pages
+- **Subscription-Based Ad Removal**: $5/month subscription to remove all ads
+- **Stripe Payment Processing**: Secure recurring billing with automatic monthly renewal
+- **Subscription Management**: 
+  - Settings page for viewing subscription status and managing subscription
+  - Customer portal for billing management
+  - Cancel subscription functionality
+  - Webhook integration for automatic subscription status updates
+- **Ad Display Logic**: Ads conditionally shown based on user's subscription status
+- Subscription renews monthly on the same date as initial purchase
+- Stripe Customer Portal allows users to update payment methods
+
 ## Environment Variables
 - `MONGO_URI`: MongoDB connection string (default: mongodb://localhost:27017/)
 - `SESSION_SECRET`: Secret key for Flask sessions
+- `STRIPE_SECRET_KEY`: Stripe API secret key for payment processing
+- `GOOGLE_ADSENSE_PUBLISHER_ID`: Google AdSense publisher ID for ad display
+- `STRIPE_WEBHOOK_SECRET`: (Optional) Stripe webhook signing secret for production
 
 ## Recent Changes
+- 2025-10-06: Implemented revenue system with ads and subscriptions
+  - Added Google AdSense banner ads to landing and list view pages
+  - Integrated Stripe for $5/month ad removal subscriptions
+  - Created subscription management routes and webhook handlers
+  - Added settings page for subscription management
+  - Ads conditionally displayed based on user's ad-free status
+  - Database schema extended with subscription fields
 - 2025-10-06: Enhanced crop modal with mobile support and preview
   - Added touch event support for mobile drag and resize
   - Larger corner handles (20px) for easier mobile interaction
