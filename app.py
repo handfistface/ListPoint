@@ -600,6 +600,7 @@ def search_users():
 
 @app.route('/api/lists/<list_id>/collaborators', methods=['POST'])
 @login_required
+@csrf.exempt
 def add_collaborator(list_id):
     try:
         list_doc = db.get_list_by_id(list_id)
@@ -629,6 +630,7 @@ def add_collaborator(list_id):
 
 @app.route('/api/lists/<list_id>/collaborators/<user_id>', methods=['DELETE'])
 @login_required
+@csrf.exempt
 def remove_collaborator(list_id, user_id):
     list_doc = db.get_list_by_id(list_id)
     if not list_doc or str(list_doc['owner_id']) != current_user.id:
