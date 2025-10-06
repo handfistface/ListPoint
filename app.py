@@ -30,6 +30,13 @@ class User(UserMixin):
         self.email = user_dict['email']
         self.username = user_dict['username']
         self.preferences = user_dict.get('preferences', {'theme': 'dark'})
+        self.subscription = user_dict.get('subscription', {
+            'is_ad_free': False,
+            'stripe_customer_id': None,
+            'stripe_subscription_id': None,
+            'subscription_start': None,
+            'subscription_end': None
+        })
 
 @login_manager.user_loader
 def load_user(user_id):

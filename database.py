@@ -38,6 +38,13 @@ class Database:
             'created_at': datetime.utcnow(),
             'preferences': {
                 'theme': 'dark'
+            },
+            'subscription': {
+                'is_ad_free': False,
+                'stripe_customer_id': None,
+                'stripe_subscription_id': None,
+                'subscription_start': None,
+                'subscription_end': None
             }
         }
         result = self.db.users.insert_one(user)
@@ -280,3 +287,28 @@ class Database:
                 'last_used': datetime.utcnow(),
                 'frequency': 1
             })
+    
+    def update_user_subscription(self, user_id, stripe_customer_id, stripe_subscription_id, is_ad_free, subscription_start=None, subscription_end=None):
+        self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'subscription.stripe_customer_id': stripe_customer_id,
+                'subscription.stripe_subscription_id': stripe_subscription_id,
+                'subscription.is_ad_free': is_ad_free,
+                'subscription.subscription_start': subscription_start or datetime.utcnow(),
+                'subscription.subscription_end': subscription_end
+            }}
+        )
+    
+    def cancel_user_subscription(self, user_id):
+        self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {
+                'subscription.is_ad_free': False,
+                'subscription.stripe_subscription_id': None,
+                'subscription.subscription_end': datetime.utcnow()
+            }}
+        )
+    
+    def get_user_by_stripe_customer_id(self, stripe_customer_id):
+        return self.db.users.find_one({'subscription.stripe_customer_id': stripe_customer_id})
