@@ -39,6 +39,10 @@ localPort = 33369
 externalPort = 3000
 
 [[ports]]
+localPort = 34401
+externalPort = 5173
+
+[[ports]]
 localPort = 34567
 externalPort = 4200
 
@@ -59,5 +63,5 @@ localPort = 46467
 externalPort = 5000
 
 [deployment]
-deploymentTarget = "cloudrun"
-run = ["sh", "-c", "bash start_mongo.sh"]
+deploymentTarget = "vm"
+run = ["bash", "start_mongo.sh"]
