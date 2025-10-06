@@ -18,9 +18,13 @@
         
         <div>
             <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
-            {% if current_list.thumbnail_url %}
-                <img src="{{ current_list.thumbnail_url }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded mb-2">
-            {% endif %}
+            <div id="thumbnail-preview-container" class="mb-2">
+                {% if current_list.thumbnail_url %}
+                    <img id="thumbnail-preview" src="{{ current_list.thumbnail_url }}" alt="Current thumbnail" class="h-40 object-cover rounded">
+                {% else %}
+                    <img id="thumbnail-preview" src="" alt="Preview" class="h-40 object-cover rounded hidden">
+                {% endif %}
+            </div>
             <input type="file" id="thumbnail-input" name="thumbnail" accept="image/*" class="hidden">
             <button type="button" onclick="document.getElementById('thumbnail-input').click()" class="px-4 py-2 rounded border hover:opacity-70" style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
                 Choose File
@@ -155,6 +159,32 @@
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 3;
         ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+        
+        // Draw resize handles (larger for mobile)
+        const handleSize = 20;
+        ctx.fillStyle = '#3b82f6';
+        // Corners
+        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
+    }
+    
+    function getResizeHandle(x, y) {
+        const handleSize = 20;
+        const handles = [
+            { name: 'nw', x: cropArea.x, y: cropArea.y },
+            { name: 'ne', x: cropArea.x + cropArea.width, y: cropArea.y },
+            { name: 'sw', x: cropArea.x, y: cropArea.y + cropArea.height },
+            { name: 'se', x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height }
+        ];
+        
+        for (let handle of handles) {
+            if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
+                return handle.name;
+            }
+        }
+        return null;
     }
 
 
@@ -177,9 +207,15 @@
             const x = clientX - rect.left;
             const y = clientY - rect.top;
             
-            // Check if touch/click is inside crop area
-            if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-                y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+            // Check if clicking/touching a resize handle
+            resizeHandle = getResizeHandle(x, y);
+            if (resizeHandle) {
+                isResizing = true;
+                dragStart = { x, y };
+            }
+            // Check if touch/click is inside crop area for dragging
+            else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                     y >= cropArea.y && y <= cropArea.y + cropArea.height) {
                 isDragging = true;
                 dragStart = { x, y };
             }
@@ -187,7 +223,7 @@
         
         // Handle drag movement (mouse or touch)
         function handleMove(e) {
-            if (!isDragging) return;
+            if (!isDragging && !isResizing) return;
             
             e.preventDefault();
             
@@ -205,19 +241,54 @@
             const x = clientX - rect.left;
             const y = clientY - rect.top;
             
-            const dx = x - dragStart.x;
-            const dy = y - dragStart.y;
-            
-            cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
-            cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
-            
-            dragStart = { x, y };
-            drawCropInterface();
+            if (isResizing && resizeHandle) {
+                const dx = x - dragStart.x;
+                const dy = y - dragStart.y;
+                const aspectRatio = 160 / 300;
+                
+                if (resizeHandle === 'se') {
+                    cropArea.width = Math.max(50, cropArea.width + dx);
+                    cropArea.height = cropArea.width * aspectRatio;
+                } else if (resizeHandle === 'sw') {
+                    const newWidth = Math.max(50, cropArea.width - dx);
+                    cropArea.x += cropArea.width - newWidth;
+                    cropArea.width = newWidth;
+                    cropArea.height = cropArea.width * aspectRatio;
+                } else if (resizeHandle === 'ne') {
+                    cropArea.width = Math.max(50, cropArea.width + dx);
+                    cropArea.height = cropArea.width * aspectRatio;
+                    cropArea.y += dy;
+                } else if (resizeHandle === 'nw') {
+                    const newWidth = Math.max(50, cropArea.width - dx);
+                    cropArea.x += cropArea.width - newWidth;
+                    cropArea.width = newWidth;
+                    cropArea.height = cropArea.width * aspectRatio;
+                    cropArea.y += dy;
+                }
+                
+                // Keep within bounds
+                cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
+                cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
+                
+                dragStart = { x, y };
+                drawCropInterface();
+            } else if (isDragging) {
+                const dx = x - dragStart.x;
+                const dy = y - dragStart.y;
+                
+                cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
+                cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
+                
+                dragStart = { x, y };
+                drawCropInterface();
+            }
         }
         
         // Handle end of drag (mouse or touch)
         function handleEnd(e) {
             isDragging = false;
+            isResizing = false;
+            resizeHandle = null;
         }
         
         // Mouse events
@@ -299,6 +370,12 @@
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             thumbnailInput.files = dataTransfer.files;
+            
+            // Show preview of cropped image
+            const previewUrl = URL.createObjectURL(file);
+            const previewImg = document.getElementById('thumbnail-preview');
+            previewImg.src = previewUrl;
+            previewImg.classList.remove('hidden');
             
             fileNameSpan.textContent = `Cropped image (${(file.size / 1024).toFixed(0)}KB)`;
             fileNameSpan.style.color = '#10b981';

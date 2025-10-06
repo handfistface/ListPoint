@@ -103,6 +103,12 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
 - `SESSION_SECRET`: Secret key for Flask sessions
 
 ## Recent Changes
+- 2025-10-06: Enhanced crop modal with mobile support and preview
+  - Added touch event support for mobile drag and resize
+  - Larger corner handles (20px) for easier mobile interaction
+  - Visual preview shows cropped image after applying crop
+  - Unified mouse and touch event handling
+  - Thicker border (3px) for better visibility on mobile
 - 2025-10-06: Fixed crop modal drag functionality
   - Moved mousemove/mouseup listeners from canvas to document
   - Prevents drag interruption when mouse leaves canvas bounds
@@ -155,8 +161,10 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
   - Canvas-based interface with draggable/resizable rectangle overlay
   - Rectangle maintains thumbnail aspect ratio (160px height / 300px width)
   - 50% opacity overlay dims excluded areas
-  - Corner handles for proportional resizing
-  - Mouse cursor changes based on interaction (move, resize handles)
+  - Large corner handles (20px) for mobile-friendly resizing
+  - Touch event support for mobile devices (touchstart, touchmove, touchend)
+  - Mouse event support for desktop (mousedown, mousemove, mouseup)
+  - Visual preview displays cropped result before form submission
   - Cropped image extracted via Canvas API
   - Client-side compression using HTML5 Canvas API
   - Progressive quality reduction (0.9 to 0.1) and dimension scaling (90% steps)
