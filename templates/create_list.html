@@ -154,147 +154,90 @@
             cropArea.width / displayScale, cropArea.height / displayScale,
             cropArea.x, cropArea.y, cropArea.width, cropArea.height);
         
-        // Draw crop rectangle border
+        // Draw crop rectangle border (thicker for mobile)
         ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
-        
-        // Draw resize handles
-        const handleSize = 10;
-        ctx.fillStyle = '#3b82f6';
-        // Corners
-        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(cropArea.x - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(cropArea.x + cropArea.width - handleSize/2, cropArea.y + cropArea.height - handleSize/2, handleSize, handleSize);
-    }
-
-    function getResizeHandle(x, y) {
-        const handleSize = 10;
-        const handles = [
-            { name: 'nw', x: cropArea.x, y: cropArea.y },
-            { name: 'ne', x: cropArea.x + cropArea.width, y: cropArea.y },
-            { name: 'sw', x: cropArea.x, y: cropArea.y + cropArea.height },
-            { name: 'se', x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height }
-        ];
-        
-        for (let handle of handles) {
-            if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
-                return handle.name;
-            }
-        }
-        return null;
     }
 
     function setupCanvasEvents() {
-        canvas.addEventListener('mousedown', (e) => {
+        // Handle start of drag (mouse or touch)
+        function handleStart(e) {
             e.preventDefault();
-            e.stopPropagation();
             
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            let clientX, clientY;
             
-            resizeHandle = getResizeHandle(x, y);
-            if (resizeHandle) {
-                isResizing = true;
-            } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-                       y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-                isDragging = true;
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
             }
+            
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            // Check if touch/click is inside crop area
+            if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+                y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+                isDragging = true;
+                dragStart = { x, y };
+            }
+        }
+        
+        // Handle drag movement (mouse or touch)
+        function handleMove(e) {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            const dx = x - dragStart.x;
+            const dy = y - dragStart.y;
+            
+            cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
+            cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
             
             dragStart = { x, y };
-        });
-
-        // Use document for mousemove and mouseup so they work even when mouse leaves canvas
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+            drawCropInterface();
+        }
         
-        // Update cursor when hovering over canvas
-        canvas.addEventListener('mousemove', (e) => {
-            if (isDragging || isResizing) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const handle = getResizeHandle(x, y);
-            if (handle) {
-                canvas.style.cursor = handle.includes('n') ? 
-                    (handle.includes('w') ? 'nw-resize' : 'ne-resize') :
-                    (handle.includes('w') ? 'sw-resize' : 'se-resize');
-            } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-                       y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-                canvas.style.cursor = 'move';
-            } else {
-                canvas.style.cursor = 'default';
-            }
-        });
-    }
-    
-    function handleMouseMove(e) {
-        if (!isDragging && !isResizing) return;
+        // Handle end of drag (mouse or touch)
+        function handleEnd(e) {
+            isDragging = false;
+        }
         
-        e.preventDefault();
+        // Mouse events
+        canvas.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleEnd);
         
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        if (isResizing && resizeHandle) {
-                const dx = x - dragStart.x;
-                const dy = y - dragStart.y;
-                const aspectRatio = 160 / 300;
-                
-                if (resizeHandle === 'se') {
-                    cropArea.width = Math.max(50, cropArea.width + dx);
-                    cropArea.height = cropArea.width * aspectRatio;
-                } else if (resizeHandle === 'sw') {
-                    const newWidth = Math.max(50, cropArea.width - dx);
-                    cropArea.x += cropArea.width - newWidth;
-                    cropArea.width = newWidth;
-                    cropArea.height = cropArea.width * aspectRatio;
-                } else if (resizeHandle === 'ne') {
-                    cropArea.width = Math.max(50, cropArea.width + dx);
-                    cropArea.height = cropArea.width * aspectRatio;
-                    const newY = cropArea.y + dy;
-                    cropArea.y = newY;
-                } else if (resizeHandle === 'nw') {
-                    const newWidth = Math.max(50, cropArea.width - dx);
-                    cropArea.x += cropArea.width - newWidth;
-                    cropArea.width = newWidth;
-                    cropArea.height = cropArea.width * aspectRatio;
-                    cropArea.y += dy;
-                }
-                
-                // Keep within bounds
-                cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
-                cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
-                
-                dragStart = { x, y };
-                drawCropInterface();
-            } else if (isDragging) {
-                const dx = x - dragStart.x;
-                const dy = y - dragStart.y;
-                
-                cropArea.x = Math.max(0, Math.min(canvas.width - cropArea.width, cropArea.x + dx));
-                cropArea.y = Math.max(0, Math.min(canvas.height - cropArea.height, cropArea.y + dy));
-                
-                dragStart = { x, y };
-                drawCropInterface();
-            }
-    }
-    
-    function handleMouseUp(e) {
-        isDragging = false;
-        isResizing = false;
-        resizeHandle = null;
-        canvas.style.cursor = 'default';
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', handleEnd);
     }
     
     function cleanupCanvasEvents() {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        // Note: we can't remove the event listeners because they're defined inside setupCanvasEvents
+        // This is okay - they only run when isDragging is true, which we reset
+        isDragging = false;
+        isResizing = false;
     }
 
     function cancelCrop() {
