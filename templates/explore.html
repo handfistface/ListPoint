@@ -25,7 +25,16 @@
     {% if lists %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for list in lists %}
-                <div class="card p-4 rounded-lg">
+                <div class="card p-4 rounded-lg relative">
+                    {% if current_user.is_authenticated %}
+                        <button 
+                            onclick="toggleFavorite('{{ list._id|string }}', this, event)" 
+                            class="absolute top-2 right-2 text-3xl z-10 hover:scale-110 transition-transform"
+                            data-favorited="{{ 'true' if list.is_favorited else 'false' }}"
+                        >
+                            {% if list.is_favorited %}⭐{% else %}☆{% endif %}
+                        </button>
+                    {% endif %}
                     <a href="{{ url_for('view_list', list_id=list._id|string) }}" class="block hover:opacity-80">
                         {% if list.thumbnail_url %}
                             <img src="{{ list.thumbnail_url }}" alt="{{ list.name }}" class="w-full h-40 object-cover rounded mb-3">
@@ -42,16 +51,6 @@
                         </h3>
                         <p class="text-sm mb-2" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
                     </a>
-                    
-                    {% if current_user.is_authenticated %}
-                        <button 
-                            onclick="toggleFavorite('{{ list._id|string }}', this)" 
-                            class="w-full mt-2 {% if list.is_favorited %}bg-yellow-600{% else %}card{% endif %} py-2 rounded hover:opacity-80"
-                        >
-                            <span class="favorite-icon">{% if list.is_favorited %}⭐{% else %}☆{% endif %}</span>
-                            <span class="favorite-text">{% if list.is_favorited %}Favorited{% else %}Favorite{% endif %}</span>
-                        </button>
-                    {% endif %}
                     
                     {% if list.tags %}
                         <div class="flex flex-wrap gap-1 mt-2">
@@ -78,7 +77,10 @@
 <script>
 const csrfToken = '{{ csrf_token() }}';
 
-async function toggleFavorite(listId, button) {
+async function toggleFavorite(listId, button, event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
     const response = await fetch(`/api/favorite/${listId}`, {
         method: 'POST',
         headers: {
@@ -89,19 +91,12 @@ async function toggleFavorite(listId, button) {
     const result = await response.json();
     
     if (result.success) {
-        const icon = button.querySelector('.favorite-icon');
-        const text = button.querySelector('.favorite-text');
-        
         if (result.favorited) {
-            button.classList.remove('card');
-            button.classList.add('bg-yellow-600');
-            icon.textContent = '⭐';
-            text.textContent = 'Favorited';
+            button.textContent = '⭐';
+            button.setAttribute('data-favorited', 'true');
         } else {
-            button.classList.add('card');
-            button.classList.remove('bg-yellow-600');
-            icon.textContent = '☆';
-            text.textContent = 'Favorite';
+            button.textContent = '☆';
+            button.setAttribute('data-favorited', 'false');
         }
     }
 }
