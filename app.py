@@ -11,6 +11,7 @@ from PIL import Image
 import os
 from datetime import timedelta, datetime
 import stripe
+import uuid
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -165,14 +166,15 @@ def create_list():
         if 'thumbnail' in request.files:
             file = request.files['thumbnail']
             if file and file.filename:
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{current_user.id}_{filename}")
+                ext = os.path.splitext(secure_filename(file.filename))[1]
+                unique_filename = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 
                 try:
                     img = Image.open(file)
                     img.thumbnail((400, 400))
                     img.save(filepath)
-                    thumbnail_url = f'/static/uploads/{current_user.id}_{filename}'
+                    thumbnail_url = f'/static/uploads/{unique_filename}'
                 except Exception as e:
                     flash(f'Error uploading image: {str(e)}', 'error')
         
@@ -243,14 +245,15 @@ def edit_list(list_id):
         if 'thumbnail' in request.files:
             file = request.files['thumbnail']
             if file and file.filename:
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{current_user.id}_{filename}")
+                ext = os.path.splitext(secure_filename(file.filename))[1]
+                unique_filename = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 
                 try:
                     img = Image.open(file)
                     img.thumbnail((400, 400))
                     img.save(filepath)
-                    update_data['thumbnail_url'] = f'/static/uploads/{current_user.id}_{filename}'
+                    update_data['thumbnail_url'] = f'/static/uploads/{unique_filename}'
                 except Exception as e:
                     flash(f'Error uploading image: {str(e)}', 'error')
         
