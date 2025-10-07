@@ -126,6 +126,7 @@ class Database:
         new_item = {
             '_id': ObjectId(),
             'text': item_text,
+            'quantity': 1,
             'added_at': datetime.utcnow()
         }
         
@@ -204,6 +205,7 @@ class Database:
         new_item = {
             '_id': ObjectId(),
             'text': item_text,
+            'quantity': 1,
             'checked': False,
             'added_at': datetime.utcnow()
         }
@@ -241,6 +243,25 @@ class Database:
             }
         )
         return True
+    
+    def adjust_item_quantity(self, list_id, item_id, delta):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                current_qty = item.get('quantity', 1)
+                new_qty = max(1, current_qty + delta)
+                item['quantity'] = new_qty
+                break
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': items, 'updated_at': datetime.utcnow()}}
+        )
+        return True, 'Quantity updated'
     
     def is_favorited(self, user_id, list_id):
         return self.db.favorites.find_one({

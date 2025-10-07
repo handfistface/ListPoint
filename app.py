@@ -353,6 +353,30 @@ def toggle_item(list_id, item_id):
     success, message = db.toggle_item_checked(list_id, item_id)
     return jsonify({'success': success, 'message': message})
 
+@app.route('/api/lists/<list_id>/items/<item_id>/quantity', methods=['POST'])
+@login_required
+def adjust_quantity(list_id, item_id):
+    list_doc = db.get_list_by_id(list_id)
+    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc or (not is_owner and not is_collaborator):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    delta = data.get('delta', 0)
+    
+    success, message = db.adjust_item_quantity(list_id, item_id, delta)
+    
+    list_doc = db.get_list_by_id(list_id)
+    new_quantity = 1
+    for item in list_doc.get('items', []):
+        if str(item['_id']) == str(item_id):
+            new_quantity = item.get('quantity', 1)
+            break
+    
+    return jsonify({'success': success, 'message': message, 'quantity': new_quantity})
+
 @app.route('/api/lists/<list_id>/original/items', methods=['POST'])
 @login_required
 def add_item_to_original(list_id):
