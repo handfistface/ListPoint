@@ -414,7 +414,11 @@ async function undoDelete() {
     const item = undoStack.pop();
     updateUndoButton();
     
-    const response = await fetch(`/api/lists/${listId}/items`, {
+    const endpoint = (isEthereal && currentMode === 'edit') 
+        ? `/api/lists/${listId}/original/items`
+        : `/api/lists/${listId}/items`;
+    
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -424,7 +428,55 @@ async function undoDelete() {
     });
     
     if (response.ok) {
-        location.reload();
+        const result = await response.json();
+        
+        const itemsList = document.getElementById('items-list');
+        const emptyMessage = itemsList.querySelector('p');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        const newItemDiv = document.createElement('div');
+        newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
+        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
+        newItemDiv.style.cursor = 'pointer';
+        newItemDiv.setAttribute('data-item-id', result.item_id);
+        newItemDiv.setAttribute('data-item-text', item.text);
+        newItemDiv.setAttribute('data-checked', 'false');
+        newItemDiv.setAttribute('data-quantity', '1');
+        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', '${item.text}', event)`);
+        
+        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
+        const quantityHidden = isEthereal ? 'hidden' : '';
+        
+        newItemDiv.innerHTML = `
+            <div class="flex items-center gap-3 flex-1">
+                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
+                       onchange="toggleItemChecked('${result.item_id}')"
+                       onclick="event.stopPropagation()">
+                <span class="item-text">${item.text}</span>
+            </div>
+            ${isOwner ? `<div class="flex items-center gap-2">
+                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
+                    −
+                </button>
+                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', 1, event)" data-action="increase">
+                    +
+                </button>
+            </div>` : ''}
+        `;
+        
+        const items = Array.from(itemsList.querySelectorAll('.item-row'));
+        const insertIndex = items.findIndex(item => {
+            const itemText = item.querySelector('.item-text').textContent;
+            return itemText.toLowerCase() > item.text.toLowerCase();
+        });
+        
+        if (insertIndex === -1) {
+            itemsList.appendChild(newItemDiv);
+        } else {
+            itemsList.insertBefore(newItemDiv, items[insertIndex]);
+        }
     }
 }
 
