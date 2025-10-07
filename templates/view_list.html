@@ -84,7 +84,8 @@
                     ↶ Undo (<span id="undo-count">0</span>)
                 </button>
             </div>
-            <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mt-2"></div>
+            <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mt-2" style="position: relative; z-index: 1;"></div>
+            <div id="inline-notification" class="w-full hidden mt-2 p-3 rounded text-white text-center"></div>
         </div>
     {% endif %}
 
@@ -112,12 +113,6 @@
                 </p>
             {% endif %}
         </div>
-    </div>
-</div>
-
-<div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="card p-6 rounded-lg max-w-md mx-4 fade-in">
-        <div id="modal-content" class="text-center"></div>
     </div>
 </div>
 
@@ -448,19 +443,16 @@ async function toggleFavorite() {
 {% endif %}
 
 function showModal(message, type) {
-    const modal = document.getElementById('modal');
-    const content = document.getElementById('modal-content');
+    const notification = document.getElementById('inline-notification');
     
     const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-    content.innerHTML = `<div class="${bgColor} text-white p-4 rounded">${message}</div>`;
-    
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    notification.className = `w-full mt-2 p-3 rounded text-white text-center ${bgColor}`;
+    notification.textContent = message;
+    notification.classList.remove('hidden');
     
     const duration = type === 'success' ? 2000 : 3000;
     setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        notification.classList.add('hidden');
     }, duration);
 }
 </script>
