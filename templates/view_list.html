@@ -467,9 +467,10 @@ async function undoDelete() {
         `;
         
         const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const insertIndex = items.findIndex(item => {
-            const itemText = item.querySelector('.item-text').textContent;
-            return itemText.toLowerCase() > item.text.toLowerCase();
+        const undoneItemText = item.text.toLowerCase();
+        const insertIndex = items.findIndex(existingItem => {
+            const itemText = existingItem.querySelector('.item-text').textContent;
+            return itemText.toLowerCase() > undoneItemText;
         });
         
         if (insertIndex === -1) {
