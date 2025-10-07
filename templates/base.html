@@ -99,6 +99,21 @@
         </div>
     </nav>
 
+    {% if current_user.is_authenticated %}
+    <div class="border-b" style="border-color: var(--border-color);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('explore') }}" class="text-blue-500 hover:underline">
+                    Explore →
+                </a>
+                <a href="{{ url_for('create_list') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    + New List
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
