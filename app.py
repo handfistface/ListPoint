@@ -154,15 +154,6 @@ def landing():
     adsense_publisher_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', '')
     return render_template('landing.html', adsense_publisher_id=adsense_publisher_id)
 
-@app.route('/debug/adsense')
-def debug_adsense():
-    adsense_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', 'NOT_SET')
-    return jsonify({
-        'adsense_publisher_id': adsense_id,
-        'is_set': adsense_id != 'NOT_SET' and adsense_id != '',
-        'length': len(adsense_id) if adsense_id else 0
-    })
-
 @app.route('/lists/create', methods=['GET', 'POST'])
 @login_required
 def create_list():

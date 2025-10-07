@@ -119,8 +119,60 @@ A minimalistic Flask-based web application for creating, managing, and sharing l
   - Cancel subscription functionality
   - Webhook integration for automatic subscription status updates
 - **Ad Display Logic**: Ads conditionally shown based on user's subscription status
+  - Smart ad containers start hidden (display:none) to prevent whitespace
+  - JavaScript MutationObserver detects when ads load (data-ad-status="filled")
+  - 2-second timeout keeps containers hidden if ads don't load
+  - No blank space shown when ads fail to load or are blocked
 - Subscription renews monthly on the same date as initial purchase
 - Stripe Customer Portal allows users to update payment methods
+
+### AdSense Troubleshooting
+**Current Status:** AdSense code is properly integrated but ads not displaying yet. This is normal and expected.
+
+**Why Ads Aren't Showing:**
+1. **Placeholder Ad Slot ID**: Templates use `1234567890` as placeholder - need real ad unit ID from AdSense dashboard
+2. **Account Approval**: New AdSense accounts can take 48 hours to 2-4 weeks for approval
+3. **Site Verification**: Domain must be verified in AdSense dashboard
+4. **Wait Period**: Even after approval, ads can take 24-48 hours to start appearing
+
+**What's Already Working:**
+- ✅ Publisher ID (`GOOGLE_ADSENSE_PUBLISHER_ID`) environment variable is set correctly
+- ✅ AdSense code renders properly in HTML with correct publisher ID
+- ✅ Ad containers prevent whitespace when ads don't load
+- ✅ Code is on landing.html and view_list.html pages
+
+**Steps to Enable Ads:**
+1. **Get Real Ad Unit ID**: 
+   - Log into your Google AdSense account
+   - Go to Ads → Ad units → Create new ad unit
+   - Copy the actual ad slot ID (not 1234567890)
+   - Replace `data-ad-slot="1234567890"` in both templates with your real ID
+
+2. **Verify Your Domain**:
+   - In AdSense dashboard, go to Sites
+   - Add your production domain (your Replit deployment URL)
+   - Ensure site status shows "Ready" (not "Getting ready")
+
+3. **Wait for Approval**: 
+   - If account is new, wait for Google's approval (can take up to 2-4 weeks)
+   - Check AdSense → Account → Policy Center for any issues
+
+4. **Test Properly**:
+   - Disable ad blockers when testing
+   - Use incognito/private mode
+   - Check browser console for errors (F12 → Console tab)
+
+**Common Issues:**
+- Ad blocker extensions prevent ads from loading
+- Using placeholder ad slot ID (current issue)
+- Domain not added/verified in AdSense
+- Account still under review
+- Policy violations in content
+
+**Quick Verification:**
+- View page source and search for "adsbygoogle" - code should be present
+- Check that `data-ad-client` matches your publisher ID
+- Ensure `data-ad-slot` is NOT "1234567890" (placeholder)
 
 ## Environment Variables
 - `MONGO_URI`: MongoDB connection string (default: mongodb://localhost:27017/)
