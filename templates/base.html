@@ -85,8 +85,16 @@
                         <button onclick="toggleTheme()" class="hover:opacity-70">
                             <span id="theme-icon">🌙</span>
                         </button>
-                        <span style="color: var(--text-secondary);">{{ current_user.username }}</span>
-                        <a href="{{ url_for('logout') }}" class="hover:opacity-70">Logout</a>
+                        <div class="relative">
+                            <div onclick="toggleAccountMenu()" class="cursor-pointer card px-4 py-2 rounded hover:opacity-80 flex items-center space-x-2">
+                                <span>{{ current_user.username }}</span>
+                                <span id="account-arrow">▼</span>
+                            </div>
+                            <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 card rounded-lg shadow-lg overflow-hidden z-50">
+                                <a href="{{ url_for('settings') }}" class="block px-4 py-3 hover:opacity-80" style="border-bottom: 1px solid var(--border-color);">⚙️ Settings</a>
+                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 hover:opacity-80">🚪 Logout</a>
+                            </div>
+                        </div>
                     {% else %}
                         <a href="{{ url_for('explore') }}" class="hover:opacity-70">Explore</a>
                         <a href="{{ url_for('login') }}" class="hover:opacity-70">Login</a>
@@ -140,9 +148,32 @@
             {% endif %}
         }
 
+        function toggleAccountMenu() {
+            const menu = document.getElementById('account-menu');
+            const arrow = document.getElementById('account-arrow');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                arrow.textContent = '▲';
+            } else {
+                menu.classList.add('hidden');
+                arrow.textContent = '▼';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const theme = document.documentElement.getAttribute('data-theme');
             document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+            
+            // Close account menu when clicking outside
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('account-menu');
+                const accountButton = e.target.closest('.cursor-pointer.card');
+                if (menu && !menu.classList.contains('hidden') && !accountButton && !menu.contains(e.target)) {
+                    menu.classList.add('hidden');
+                    const arrow = document.getElementById('account-arrow');
+                    if (arrow) arrow.textContent = '▼';
+                }
+            });
             
             // Handle AdSense ad containers
             const adContainers = document.querySelectorAll('.ad-container');
