@@ -80,11 +80,11 @@
                     style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
                     autocomplete="off"
                 >
-                <div id="autocomplete" class="absolute z-10 w-full mt-1 card rounded shadow-lg hidden max-h-48 overflow-y-auto"></div>
                 <button id="undo-btn" onclick="undoDelete()" class="absolute right-2 top-2 px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 hidden">
                     ↶ Undo (<span id="undo-count">0</span>)
                 </button>
             </div>
+            <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mt-2"></div>
         </div>
     {% endif %}
 
