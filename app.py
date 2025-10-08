@@ -716,6 +716,68 @@ def serve_object(object_path):
         print(f"Error serving object: {str(e)}")
         return 'Internal server error', 500
 
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('index'))
+    
+    users = db.get_all_users()
+    theme = current_user.preferences.get('theme', 'dark')
+    return render_template('admin_users.html', users=users, theme=theme)
+
+@app.route('/admin/user/<user_id>/edit', methods=['POST'])
+@login_required
+def edit_user(user_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    field = request.json.get('field')
+    value = request.json.get('value')
+    
+    if field == 'password_hash':
+        return jsonify({'success': False, 'message': 'Cannot edit password directly'}), 400
+    
+    success = db.update_user_field(user_id, field, value)
+    return jsonify({'success': success})
+
+@app.route('/admin/user/<user_id>/role', methods=['POST'])
+@login_required
+def manage_user_role(user_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    action = request.json.get('action')
+    role = request.json.get('role')
+    
+    if action == 'add':
+        success = db.add_user_role(user_id, role)
+    elif action == 'remove':
+        success = db.remove_user_role(user_id, role)
+    else:
+        return jsonify({'success': False, 'message': 'Invalid action'}), 400
+    
+    return jsonify({'success': success})
+
+@app.route('/admin/user/<user_id>/group', methods=['POST'])
+@login_required
+def manage_user_group(user_id):
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    action = request.json.get('action')
+    group = request.json.get('group')
+    
+    if action == 'add':
+        success = db.add_user_group(user_id, group)
+    elif action == 'remove':
+        success = db.remove_user_group(user_id, group)
+    else:
+        return jsonify({'success': False, 'message': 'Invalid action'}), 400
+    
+    return jsonify({'success': success})
+
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     app.run(host='0.0.0.0', port=5000, debug=True)
