@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -699,6 +699,19 @@ def settings():
                          subscription=subscription,
                          subscription_info=subscription_info,
                          theme=theme)
+
+@app.route('/objects/<path:object_path>')
+def serve_object(object_path):
+    try:
+        storage_service = ObjectStorageService()
+        blob = storage_service.get_object_file(f'/objects/{object_path}')
+        response = Response()
+        return storage_service.download_object(blob, response)
+    except FileNotFoundError:
+        return 'Object not found', 404
+    except Exception as e:
+        print(f"Error serving object: {str(e)}")
+        return 'Internal server error', 500
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
