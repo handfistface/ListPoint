@@ -35,6 +35,9 @@ class User(UserMixin):
         self.id = str(user_dict['_id'])
         self.email = user_dict['email']
         self.username = user_dict['username']
+        self.is_admin = user_dict.get('is_admin', False)
+        self.roles = user_dict.get('roles', [])
+        self.groups = user_dict.get('groups', [])
         self.preferences = user_dict.get('preferences', {'theme': 'dark'})
         self.subscription = user_dict.get('subscription', {
             'is_ad_free': False,

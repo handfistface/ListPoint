@@ -46,6 +46,9 @@ class Database:
             'username': username,
             'password_hash': password_hash,
             'created_at': datetime.utcnow(),
+            'is_admin': False,
+            'roles': [],
+            'groups': [],
             'preferences': {
                 'theme': 'dark'
             },
@@ -386,3 +389,56 @@ class Database:
             return False
         collaborators = list_doc.get('collaborators', [])
         return ObjectId(user_id) in collaborators
+    
+    # Admin methods
+    def set_user_admin(self, username, is_admin=True):
+        result = self.db.users.update_one(
+            {'username': username},
+            {'$set': {'is_admin': is_admin}}
+        )
+        return result.modified_count > 0
+    
+    def get_all_users(self):
+        users = list(self.db.users.find({}).sort('created_at', -1))
+        # Remove password_hash from the results
+        for user in users:
+            user.pop('password_hash', None)
+        return users
+    
+    def update_user_field(self, user_id, field, value):
+        # Prevent updating password_hash directly
+        if field == 'password_hash':
+            return False
+        result = self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {field: value}}
+        )
+        return result.modified_count > 0
+    
+    def add_user_role(self, user_id, role):
+        result = self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$addToSet': {'roles': role}}
+        )
+        return result.modified_count > 0
+    
+    def remove_user_role(self, user_id, role):
+        result = self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$pull': {'roles': role}}
+        )
+        return result.modified_count > 0
+    
+    def add_user_group(self, user_id, group):
+        result = self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$addToSet': {'groups': group}}
+        )
+        return result.modified_count > 0
+    
+    def remove_user_group(self, user_id, group):
+        result = self.db.users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$pull': {'groups': group}}
+        )
+        return result.modified_count > 0
