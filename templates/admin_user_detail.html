@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - User Details{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold">User Details</h1>
+        <a href="{{ url_for('admin_users') }}" class="text-blue-500 hover:underline">← Back to Users</a>
+    </div>
+    
+    <div class="card rounded-lg p-6">
+        <div class="space-y-6">
+            <!-- User ID -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">User ID</label>
+                <div class="text-lg">{{ user._id }}</div>
+            </div>
+
+            <!-- Username (Editable) -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Username</label>
+                <div class="flex items-center gap-3">
+                    <input type="text" 
+                           id="username-input"
+                           value="{{ user.username }}" 
+                           class="bg-transparent border border-gray-600 rounded px-3 py-2 flex-1 text-lg"
+                           data-original="{{ user.username }}">
+                    <button onclick="updateField('username', document.getElementById('username-input').value)" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Save
+                    </button>
+                </div>
+            </div>
+
+            <!-- Email (Editable) -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Email</label>
+                <div class="flex items-center gap-3">
+                    <input type="email" 
+                           id="email-input"
+                           value="{{ user.email }}" 
+                           class="bg-transparent border border-gray-600 rounded px-3 py-2 flex-1 text-lg"
+                           data-original="{{ user.email }}">
+                    <button onclick="updateField('email', document.getElementById('email-input').value)" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Save
+                    </button>
+                </div>
+            </div>
+
+            <!-- Created At -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Created At</label>
+                <div class="text-lg">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</div>
+            </div>
+
+            <!-- Admin Status -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Admin Status</label>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" 
+                           id="admin-checkbox"
+                           {% if user.is_admin %}checked{% endif %}
+                           class="w-6 h-6"
+                           onchange="updateField('is_admin', this.checked)">
+                    <span class="text-lg">{{ 'Administrator' if user.is_admin else 'Regular User' }}</span>
+                </div>
+            </div>
+
+            <!-- Roles -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Roles</label>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    {% for role in user.roles|default([]) %}
+                    <span class="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-2">
+                        {{ role }}
+                        <button onclick="removeRole('{{ role }}')" class="text-white hover:text-red-300 font-bold">×</button>
+                    </span>
+                    {% endfor %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" 
+                           id="role-input"
+                           placeholder="Add new role" 
+                           class="bg-transparent border border-gray-600 rounded px-3 py-2 flex-1"
+                           onkeypress="if(event.key === 'Enter') addRole()">
+                    <button onclick="addRole()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Add Role
+                    </button>
+                </div>
+            </div>
+
+            <!-- Groups -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Groups</label>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    {% for group in user.groups|default([]) %}
+                    <span class="bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2">
+                        {{ group }}
+                        <button onclick="removeGroup('{{ group }}')" class="text-white hover:text-red-300 font-bold">×</button>
+                    </span>
+                    {% endfor %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" 
+                           id="group-input"
+                           placeholder="Add new group" 
+                           class="bg-transparent border border-gray-600 rounded px-3 py-2 flex-1"
+                           onkeypress="if(event.key === 'Enter') addGroup()">
+                    <button onclick="addGroup()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Add Group
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Preferences</label>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3">
+                        <span class="w-24">Theme:</span>
+                        <select onchange="updateField('preferences.theme', this.value)" 
+                                class="bg-transparent border border-gray-600 rounded px-3 py-2">
+                            <option value="dark" {% if user.preferences.theme == 'dark' %}selected{% endif %}>Dark</option>
+                            <option value="light" {% if user.preferences.theme == 'light' %}selected{% endif %}>Light</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subscription -->
+            <div class="border-b pb-4" style="border-color: var(--border-color);">
+                <label class="block text-sm font-semibold mb-2" style="color: var(--text-secondary);">Subscription</label>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" 
+                               {% if user.subscription.is_ad_free %}checked{% endif %}
+                               class="w-6 h-6"
+                               onchange="updateField('subscription.is_ad_free', this.checked)">
+                        <span>Ad-Free Status</span>
+                    </div>
+                    {% if user.subscription.stripe_customer_id %}
+                    <div class="text-sm" style="color: var(--text-secondary);">
+                        <div>Stripe Customer ID: {{ user.subscription.stripe_customer_id }}</div>
+                        {% if user.subscription.stripe_subscription_id %}
+                        <div>Subscription ID: {{ user.subscription.stripe_subscription_id }}</div>
+                        {% endif %}
+                        {% if user.subscription.subscription_start %}
+                        <div>Started: {{ user.subscription.subscription_start.strftime('%Y-%m-%d') }}</div>
+                        {% endif %}
+                        {% if user.subscription.subscription_end %}
+                        <div>Ends: {{ user.subscription.subscription_end.strftime('%Y-%m-%d') }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-sm" style="color: var(--text-secondary);">No active subscription</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const userId = '{{ user._id }}';
+
+function updateField(field, value) {
+    fetch(`/admin/user/${userId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ field: field, value: value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const inputElement = document.getElementById(field + '-input') || 
+                                document.getElementById(field.replace('.', '-') + '-input');
+            if (inputElement) {
+                inputElement.style.borderColor = '#22c55e';
+                setTimeout(() => inputElement.style.borderColor = '', 1000);
+            }
+            alert('Updated successfully!');
+        } else {
+            alert('Failed to update: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function addRole() {
+    const input = document.getElementById('role-input');
+    const role = input.value.trim();
+    
+    if (!role) return;
+    
+    fetch(`/admin/user/${userId}/role`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'add', role: role })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to add role: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+
+function removeRole(role) {
+    fetch(`/admin/user/${userId}/role`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'remove', role: role })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to remove role: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+
+function addGroup() {
+    const input = document.getElementById('group-input');
+    const group = input.value.trim();
+    
+    if (!group) return;
+    
+    fetch(`/admin/user/${userId}/group`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'add', group: group })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to add group: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+
+function removeGroup(group) {
+    fetch(`/admin/user/${userId}/group`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'remove', group: group })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to remove group: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+</script>
+
+{% endblock %}
