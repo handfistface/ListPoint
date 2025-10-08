@@ -321,6 +321,7 @@
     let isResizing = false;
     let dragStart = { x: 0, y: 0 };
     let resizeHandle = null;
+    let resizeAnchor = { x: 0, y: 0 };
     let canvas, ctx;
     let displayScale = 1;
 
@@ -441,6 +442,17 @@
             if (resizeHandle) {
                 isResizing = true;
                 dragStart = { x, y };
+                
+                // Set anchor point (opposite corner from handle)
+                if (resizeHandle === 'se') {
+                    resizeAnchor = { x: cropArea.x, y: cropArea.y };
+                } else if (resizeHandle === 'sw') {
+                    resizeAnchor = { x: cropArea.x + cropArea.width, y: cropArea.y };
+                } else if (resizeHandle === 'ne') {
+                    resizeAnchor = { x: cropArea.x, y: cropArea.y + cropArea.height };
+                } else if (resizeHandle === 'nw') {
+                    resizeAnchor = { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height };
+                }
             }
             // Check if touch/click is inside crop area for dragging
             else if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
@@ -471,35 +483,44 @@
             const y = clientY - rect.top;
             
             if (isResizing && resizeHandle) {
-                const dx = x - dragStart.x;
-                const dy = y - dragStart.y;
                 const aspectRatio = 160 / 300;
                 
                 if (resizeHandle === 'se') {
-                    cropArea.width = Math.max(50, cropArea.width + dx);
-                    cropArea.height = cropArea.width * aspectRatio;
+                    const newWidth = Math.max(50, x - resizeAnchor.x);
+                    const newHeight = newWidth * aspectRatio;
+                    cropArea.x = resizeAnchor.x;
+                    cropArea.y = resizeAnchor.y;
+                    cropArea.width = newWidth;
+                    cropArea.height = newHeight;
                 } else if (resizeHandle === 'sw') {
-                    const newWidth = Math.max(50, cropArea.width - dx);
-                    cropArea.x += cropArea.width - newWidth;
+                    const newWidth = Math.max(50, resizeAnchor.x - x);
+                    const newHeight = newWidth * aspectRatio;
+                    cropArea.x = resizeAnchor.x - newWidth;
+                    cropArea.y = resizeAnchor.y;
                     cropArea.width = newWidth;
-                    cropArea.height = cropArea.width * aspectRatio;
+                    cropArea.height = newHeight;
                 } else if (resizeHandle === 'ne') {
-                    cropArea.width = Math.max(50, cropArea.width + dx);
-                    cropArea.height = cropArea.width * aspectRatio;
-                    cropArea.y += dy;
-                } else if (resizeHandle === 'nw') {
-                    const newWidth = Math.max(50, cropArea.width - dx);
-                    cropArea.x += cropArea.width - newWidth;
+                    const newWidth = Math.max(50, x - resizeAnchor.x);
+                    const newHeight = newWidth * aspectRatio;
+                    cropArea.x = resizeAnchor.x;
+                    cropArea.y = resizeAnchor.y - newHeight;
                     cropArea.width = newWidth;
-                    cropArea.height = cropArea.width * aspectRatio;
-                    cropArea.y += dy;
+                    cropArea.height = newHeight;
+                } else if (resizeHandle === 'nw') {
+                    const newWidth = Math.max(50, resizeAnchor.x - x);
+                    const newHeight = newWidth * aspectRatio;
+                    cropArea.x = resizeAnchor.x - newWidth;
+                    cropArea.y = resizeAnchor.y - newHeight;
+                    cropArea.width = newWidth;
+                    cropArea.height = newHeight;
                 }
                 
                 // Keep within bounds
-                cropArea.x = Math.max(0, Math.min(cropArea.x, canvas.width - cropArea.width));
-                cropArea.y = Math.max(0, Math.min(cropArea.y, canvas.height - cropArea.height));
+                cropArea.x = Math.max(0, cropArea.x);
+                cropArea.y = Math.max(0, cropArea.y);
+                cropArea.width = Math.min(cropArea.width, canvas.width - cropArea.x);
+                cropArea.height = Math.min(cropArea.height, canvas.height - cropArea.y);
                 
-                dragStart = { x, y };
                 drawCropInterface();
             } else if (isDragging) {
                 const dx = x - dragStart.x;
