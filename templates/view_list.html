@@ -423,6 +423,17 @@ async function undoDelete() {
     if (undoStack.length === 0) return;
     
     const item = undoStack.pop();
+    
+    // Check if item already exists in the list
+    const existingItems = Array.from(document.querySelectorAll('.item-text'));
+    const itemExists = existingItems.some(el => el.textContent.toLowerCase() === item.text.toLowerCase());
+    
+    if (itemExists) {
+        showModal('✗ Item already exists in the list', 'error');
+        updateUndoButton();
+        return;
+    }
+    
     updateUndoButton();
     
     const endpoint = (isEthereal && currentMode === 'edit') 
