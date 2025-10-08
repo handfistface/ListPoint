@@ -333,7 +333,10 @@ def add_item(list_id):
 @login_required
 def delete_item(list_id, item_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc or (not is_owner and not is_collaborator):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     db.remove_item_from_list(list_id, item_id)
