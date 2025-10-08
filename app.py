@@ -12,6 +12,8 @@ import os
 from datetime import timedelta, datetime
 import stripe
 import uuid
+from object_storage import ObjectStorageService
+import io
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key-change-in-production')
@@ -167,14 +169,18 @@ def create_list():
             file = request.files['thumbnail']
             if file and file.filename:
                 ext = os.path.splitext(secure_filename(file.filename))[1]
-                unique_filename = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 
                 try:
                     img = Image.open(file)
                     img.thumbnail((400, 400))
-                    img.save(filepath)
-                    thumbnail_url = f'/static/uploads/{unique_filename}'
+                    
+                    img_io = io.BytesIO()
+                    img_format = img.format or 'JPEG'
+                    img.save(img_io, format=img_format)
+                    img_io.seek(0)
+                    
+                    storage_service = ObjectStorageService()
+                    thumbnail_url = storage_service.upload_thumbnail(img_io, ext)
                 except Exception as e:
                     flash(f'Error uploading image: {str(e)}', 'error')
         
@@ -246,14 +252,18 @@ def edit_list(list_id):
             file = request.files['thumbnail']
             if file and file.filename:
                 ext = os.path.splitext(secure_filename(file.filename))[1]
-                unique_filename = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 
                 try:
                     img = Image.open(file)
                     img.thumbnail((400, 400))
-                    img.save(filepath)
-                    update_data['thumbnail_url'] = f'/static/uploads/{unique_filename}'
+                    
+                    img_io = io.BytesIO()
+                    img_format = img.format or 'JPEG'
+                    img.save(img_io, format=img_format)
+                    img_io.seek(0)
+                    
+                    storage_service = ObjectStorageService()
+                    update_data['thumbnail_url'] = storage_service.upload_thumbnail(img_io, ext)
                 except Exception as e:
                     flash(f'Error uploading image: {str(e)}', 'error')
         
