@@ -704,9 +704,9 @@ def settings():
 def serve_object(object_path):
     try:
         storage_service = ObjectStorageService()
-        blob = storage_service.get_object_file(f'/objects/{object_path}')
+        file_data = storage_service.get_object_file(f'/objects/{object_path}')
         response = Response()
-        return storage_service.download_object(blob, response)
+        return storage_service.download_object(file_data, response)
     except FileNotFoundError:
         return 'Object not found', 404
     except Exception as e:
