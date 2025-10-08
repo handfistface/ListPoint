@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - User Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">User Management</h1>
+    
+    <div class="card rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead style="border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Username</th>
+                        <th class="px-4 py-3 text-left">Email</th>
+                        <th class="px-4 py-3 text-left">Created At</th>
+                        <th class="px-4 py-3 text-left">Admin</th>
+                        <th class="px-4 py-3 text-left">Roles</th>
+                        <th class="px-4 py-3 text-left">Groups</th>
+                        <th class="px-4 py-3 text-left">Ad-Free</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr style="border-bottom: 1px solid var(--border-color);" id="user-{{ user._id }}">
+                        <td class="px-4 py-3">
+                            <input type="text" 
+                                   value="{{ user.username }}" 
+                                   class="bg-transparent border border-gray-600 rounded px-2 py-1 w-full"
+                                   data-user-id="{{ user._id }}"
+                                   data-field="username"
+                                   onchange="updateUserField(this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="email" 
+                                   value="{{ user.email }}" 
+                                   class="bg-transparent border border-gray-600 rounded px-2 py-1 w-full"
+                                   data-user-id="{{ user._id }}"
+                                   data-field="email"
+                                   onchange="updateUserField(this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="text-sm">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="checkbox" 
+                                   {% if user.is_admin %}checked{% endif %}
+                                   class="w-5 h-5"
+                                   data-user-id="{{ user._id }}"
+                                   data-field="is_admin"
+                                   onchange="updateUserField(this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-1 mb-2">
+                                {% for role in user.roles|default([]) %}
+                                <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                    {{ role }}
+                                    <button onclick="removeRole('{{ user._id }}', '{{ role }}')" class="text-white hover:text-red-300">×</button>
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <input type="text" 
+                                   placeholder="Add role" 
+                                   class="bg-transparent border border-gray-600 rounded px-2 py-1 w-full text-sm"
+                                   data-user-id="{{ user._id }}"
+                                   onkeypress="addRole(event, this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-1 mb-2">
+                                {% for group in user.groups|default([]) %}
+                                <span class="bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                    {{ group }}
+                                    <button onclick="removeGroup('{{ user._id }}', '{{ group }}')" class="text-white hover:text-red-300">×</button>
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <input type="text" 
+                                   placeholder="Add group" 
+                                   class="bg-transparent border border-gray-600 rounded px-2 py-1 w-full text-sm"
+                                   data-user-id="{{ user._id }}"
+                                   onkeypress="addGroup(event, this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="checkbox" 
+                                   {% if user.subscription and user.subscription.is_ad_free %}checked{% endif %}
+                                   class="w-5 h-5"
+                                   data-user-id="{{ user._id }}"
+                                   data-field="subscription.is_ad_free"
+                                   onchange="updateUserField(this)">
+                        </td>
+                        <td class="px-4 py-3">
+                            <button onclick="window.location.reload()" class="text-blue-500 hover:underline text-sm">
+                                Refresh
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateUserField(element) {
+    const userId = element.dataset.userId;
+    const field = element.dataset.field;
+    let value = element.type === 'checkbox' ? element.checked : element.value;
+    
+    fetch(`/admin/user/${userId}/edit`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ field: field, value: value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            element.style.borderColor = '#22c55e';
+            setTimeout(() => element.style.borderColor = '', 1000);
+        } else {
+            alert('Failed to update: ' + (data.message || 'Unknown error'));
+            element.style.borderColor = '#ef4444';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function addRole(event, element) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const userId = element.dataset.userId;
+        const role = element.value.trim();
+        
+        if (!role) return;
+        
+        fetch(`/admin/user/${userId}/role`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ action: 'add', role: role })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Failed to add role: ' + (data.message || 'Unknown error'));
+            }
+        });
+    }
+}
+
+function removeRole(userId, role) {
+    fetch(`/admin/user/${userId}/role`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'remove', role: role })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to remove role: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+
+function addGroup(event, element) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const userId = element.dataset.userId;
+        const group = element.value.trim();
+        
+        if (!group) return;
+        
+        fetch(`/admin/user/${userId}/group`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ action: 'add', group: group })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Failed to add group: ' + (data.message || 'Unknown error'));
+            }
+        });
+    }
+}
+
+function removeGroup(userId, group) {
+    fetch(`/admin/user/${userId}/group`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ action: 'remove', group: group })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to remove group: ' + (data.message || 'Unknown error'));
+        }
+    });
+}
+</script>
+
+{% endblock %}
