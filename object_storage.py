@@ -1,29 +1,31 @@
 from google.cloud import storage
+from google.auth import external_account
 from flask import Response
 import os
 import uuid
+import json
 
 REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106"
 
 def get_storage_client():
     """Create and return a Google Cloud Storage client configured for Replit."""
-    return storage.Client(
-        credentials={
-            "audience": "replit",
-            "subject_token_type": "access_token",
-            "token_url": f"{REPLIT_SIDECAR_ENDPOINT}/token",
-            "type": "external_account",
-            "credential_source": {
-                "url": f"{REPLIT_SIDECAR_ENDPOINT}/credential",
-                "format": {
-                    "type": "json",
-                    "subject_token_field_name": "access_token",
-                },
+    credentials_info = {
+        "type": "external_account",
+        "audience": "replit",
+        "subject_token_type": "access_token",
+        "token_url": f"{REPLIT_SIDECAR_ENDPOINT}/token",
+        "credential_source": {
+            "url": f"{REPLIT_SIDECAR_ENDPOINT}/credential",
+            "format": {
+                "type": "json",
+                "subject_token_field_name": "access_token",
             },
-            "universe_domain": "googleapis.com",
         },
-        project=""
-    )
+        "universe_domain": "googleapis.com",
+    }
+    
+    credentials = external_account.Credentials.from_info(credentials_info)
+    return storage.Client(credentials=credentials, project="")
 
 class ObjectStorageService:
     def __init__(self):

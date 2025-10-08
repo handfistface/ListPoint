@@ -89,3 +89,6 @@ externalPort = 5000
 [deployment]
 deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "app:app"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-9e851040-3ea5-4621-85f6-c0fabf967aee"
