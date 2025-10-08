@@ -13,6 +13,7 @@ The application features a clean, minimalistic design with a responsive interfac
 
 ### Technical Implementations
 - **Authentication**: Flask-Login handles user registration, login, session management, and password hashing using Werkzeug.
+- **Admin Interface**: Secure admin panel for user management. Admins can view all users (excluding password hashes), edit user fields (except passwords), manage roles and groups, and toggle admin status. All admin routes are protected with authorization checks. Access to the admin panel is shown conditionally in the navigation menu based on the user's admin status.
 - **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" which act as templates. Check Lists have "Check Off Mode" for temporary checking and "Edit Mode" for permanent template modification. Items are automatically sorted alphabetically.
 - **Item Management**: Includes features like click-to-delete, autocomplete suggestions, and an undo system for deleted items.
 - **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management and are displayed prominently.
@@ -21,6 +22,7 @@ The application features a clean, minimalistic design with a responsive interfac
 
 ### Feature Specifications
 - **User Accounts**: Registration, login, session management.
+- **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection.
 - **List Creation**: Name, thumbnail, tags, visibility (public/private).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
 - **Item Operations**: Add, delete, check/uncheck (for Check Lists), undo.
