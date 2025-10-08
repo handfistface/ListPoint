@@ -727,6 +727,22 @@ def admin_users():
     theme = current_user.preferences.get('theme', 'dark')
     return render_template('admin_users.html', users=users, theme=theme)
 
+@app.route('/admin/user/<user_id>')
+@login_required
+def admin_user_detail(user_id):
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('index'))
+    
+    user_dict = db.get_user_by_id(user_id)
+    if not user_dict:
+        flash('User not found', 'error')
+        return redirect(url_for('admin_users'))
+    
+    user_dict.pop('password_hash', None)
+    theme = current_user.preferences.get('theme', 'dark')
+    return render_template('admin_user_detail.html', user=user_dict, theme=theme)
+
 @app.route('/admin/user/<user_id>/edit', methods=['POST'])
 @login_required
 def edit_user(user_id):
