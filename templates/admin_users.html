@@ -25,12 +25,10 @@
                     {% for user in users %}
                     <tr style="border-bottom: 1px solid var(--border-color);" id="user-{{ user._id }}">
                         <td class="px-4 py-3">
-                            <input type="text" 
-                                   value="{{ user.username }}" 
-                                   class="bg-transparent border border-gray-600 rounded px-2 py-1 w-full"
-                                   data-user-id="{{ user._id }}"
-                                   data-field="username"
-                                   onchange="updateUserField(this)">
+                            <a href="{{ url_for('admin_user_detail', user_id=user._id) }}" 
+                               class="text-blue-500 hover:underline font-medium">
+                                {{ user.username }}
+                            </a>
                         </td>
                         <td class="px-4 py-3">
                             <input type="email" 
