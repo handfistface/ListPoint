@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    {% if is_owner %}
+    {% if is_owner or is_collaborator %}
         <div class="mb-6" id="add-item-section">
             <div class="relative">
                 <input 
@@ -115,7 +115,7 @@
                                 <span class="text-sm" style="color: var(--text-secondary);">x{{ item.get('quantity', 1) }}</span>
                             {% endif %}
                         </div>
-                        {% if is_owner %}
+                        {% if is_owner or is_collaborator %}
                             <div class="flex items-center gap-2">
                                 <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} {% if item.get('quantity', 1) <= 1 %}invisible{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', -1, event)" data-action="decrease">
                                     −
@@ -129,7 +129,7 @@
                 {% endfor %}
             {% else %}
                 <p class="text-center py-8" style="color: var(--text-secondary);">
-                    No items yet. {% if is_owner %}Start adding items above!{% endif %}
+                    No items yet. {% if is_owner or is_collaborator %}Start adding items above!{% endif %}
                 </p>
             {% endif %}
         </div>
@@ -147,6 +147,7 @@
 const listId = '{{ current_list._id }}';
 const csrfToken = '{{ csrf_token() }}';
 const isOwner = {{ 'true' if is_owner else 'false' }};
+const isCollaborator = {{ 'true' if is_collaborator else 'false' }};
 const isEthereal = {{ 'true' if current_list.is_ethereal else 'false' }};
 let undoStack = [];
 const MAX_UNDO = 10;
@@ -209,7 +210,7 @@ if (isEthereal && isOwner) {
     updateUIForMode();
 }
 
-{% if is_owner %}
+{% if is_owner or is_collaborator %}
 const itemInput = document.getElementById('item-input');
 const autocomplete = document.getElementById('autocomplete');
 
@@ -302,7 +303,7 @@ async function addItem() {
                        onclick="event.stopPropagation()">
                 <span class="item-text">${text}</span>
             </div>
-            ${isOwner ? `<div class="flex items-center gap-2">
+            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
                 <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
                     −
                 </button>
@@ -332,7 +333,7 @@ async function addItem() {
 }
 
 async function deleteItemByRow(itemId, itemText, event) {
-    if (!isOwner) return;
+    if (!isOwner && !isCollaborator) return;
     
     const target = event.target;
     if (target.classList.contains('quantity-btn') || target.classList.contains('item-checkbox')) {
@@ -478,7 +479,7 @@ async function undoDelete() {
                        onclick="event.stopPropagation()">
                 <span class="item-text">${item.text}</span>
             </div>
-            ${isOwner ? `<div class="flex items-center gap-2">
+            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
                 <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
                     −
                 </button>

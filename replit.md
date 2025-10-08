@@ -16,7 +16,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Admin Interface**: Secure admin panel for user management. Admins can view all users (excluding password hashes), edit user fields (except passwords), manage roles and groups, and toggle admin status. All admin routes are protected with authorization checks. Access to the admin panel is shown conditionally in the navigation menu based on the user's admin status.
 - **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" which act as templates. Check Lists have "Check Off Mode" for temporary checking and "Edit Mode" for permanent template modification. Items are automatically sorted alphabetically.
 - **Item Management**: Includes features like click-to-delete, autocomplete suggestions, and an undo system for deleted items.
-- **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management and are displayed prominently.
+- **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management (add, delete, adjust quantity) for both owners and collaborators.
 - **Image Handling**: Client-side image cropping and compression (up to 500KB) with a custom file picker and visual feedback. Images are converted to JPEG for optimal compression.
 - **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal. Ad display logic intelligently handles ad loading and ensures no whitespace is shown if ads fail to load.
 
@@ -27,7 +27,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
 - **Item Operations**: Add, delete, check/uncheck (for Check Lists), undo.
 - **Discovery**: Browse, search, filter lists by tags.
-- **Collaboration**: Invite/remove collaborators, shared list access and editing.
+- **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
 - **Favorites**: Mark/unmark lists as favorites for quick access.
 - **Theming**: Dark/Light mode toggle with persistence.
 - **Image Uploads**: Interactive cropping, compression, aspect ratio control (160/300).
