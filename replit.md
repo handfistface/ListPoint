@@ -31,6 +31,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Favorites**: Mark/unmark lists as favorites for quick access.
 - **Theming**: Dark/Light mode toggle with persistence.
 - **Image Uploads**: Interactive cropping, compression, aspect ratio control (160/300).
+- **Footer Pages**: About Us page describing the platform's mission, features, and solo developer background. Contact Us page with email contact information (kirschnerjohn10@gmail.com).
 
 ### System Design Choices
 - All items are automatically sorted alphabetically upon addition.
