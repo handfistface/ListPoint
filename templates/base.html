@@ -149,6 +149,18 @@
         {% block content %}{% endblock %}
     </main>
 
+    <footer class="border-t mt-12 py-6" style="border-color: var(--border-color);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-center items-center space-x-6 text-sm" style="color: var(--text-secondary);">
+                <a href="{{ url_for('about') }}" class="hover:text-blue-500 transition">About Us</a>
+                <span>•</span>
+                <a href="{{ url_for('contact') }}" class="hover:text-blue-500 transition">Contact Us</a>
+                <span>•</span>
+                <span>&copy; 2025 List Point</span>
+            </div>
+        </div>
+    </footer>
+
     <script>
         function toggleTheme() {
             const html = document.documentElement;
