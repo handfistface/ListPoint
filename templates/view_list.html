@@ -104,7 +104,7 @@
         <div id="items-list" class="space-y-2">
             {% if current_list['items'] %}
                 {% for item in current_list['items'] %}
-                    <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', '{{ item.text }}', event)">
+                    <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
                                    onchange="toggleItemChecked('{{ item._id }}')" 
@@ -291,7 +291,7 @@ async function addItem() {
         newItemDiv.setAttribute('data-item-text', text);
         newItemDiv.setAttribute('data-checked', 'false');
         newItemDiv.setAttribute('data-quantity', '1');
-        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', '${text}', event)`);
+        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
         
         const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
         const quantityHidden = isEthereal ? 'hidden' : '';
@@ -332,13 +332,16 @@ async function addItem() {
     }
 }
 
-async function deleteItemByRow(itemId, itemText, event) {
+async function deleteItemByRow(itemId, event) {
     if (!isOwner && !isCollaborator) return;
     
     const target = event.target;
     if (target.classList.contains('quantity-btn') || target.classList.contains('item-checkbox')) {
         return;
     }
+    
+    const itemRow = document.querySelector(`[data-item-id="${itemId}"]`);
+    const itemText = itemRow.getAttribute('data-item-text');
     
     const endpoint = (isEthereal && currentMode === 'edit')
         ? `/api/lists/${listId}/original/items/${itemId}`
@@ -358,7 +361,7 @@ async function deleteItemByRow(itemId, itemText, event) {
         }
         updateUndoButton();
         
-        document.querySelector(`[data-item-id="${itemId}"]`).remove();
+        itemRow.remove();
         
         if (document.querySelectorAll('[data-item-id]').length === 0) {
             document.getElementById('items-list').innerHTML = '<p class="text-center py-8" style="color: var(--text-secondary);">No items yet. Start adding items above!</p>';
@@ -467,7 +470,7 @@ async function undoDelete() {
         newItemDiv.setAttribute('data-item-text', item.text);
         newItemDiv.setAttribute('data-checked', 'false');
         newItemDiv.setAttribute('data-quantity', '1');
-        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', '${item.text}', event)`);
+        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
         
         const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
         const quantityHidden = isEthereal ? 'hidden' : '';
