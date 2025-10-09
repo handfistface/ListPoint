@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - List Point{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold mb-8 text-center">About List Point</h1>
+    
+    <div class="card p-8 rounded-lg mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Our Mission</h2>
+        <p class="text-lg mb-4" style="color: var(--text-secondary); line-height: 1.8;">
+            List Point exists to make organizing your life simpler and more collaborative. We believe that everyone deserves a straightforward, beautiful tool to create, manage, and share lists—whether you're planning groceries, tracking tasks, or organizing ideas with friends.
+        </p>
+    </div>
+
+    <div class="card p-8 rounded-lg mb-8">
+        <h2 class="text-2xl font-semibold mb-4">What We Do</h2>
+        <p class="text-lg mb-4" style="color: var(--text-secondary); line-height: 1.8;">
+            List Point is a minimalistic web platform designed to help you create and manage lists with ease. From standard to-do lists to dynamic check lists that restore themselves, we offer flexible tools for different needs. You can:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4" style="color: var(--text-secondary); font-size: 1.1rem;">
+            <li>Create public or private lists with custom thumbnails and tags</li>
+            <li>Collaborate with others on shared lists</li>
+            <li>Discover and favorite lists from the community</li>
+            <li>Track items with check/uncheck features and undo capabilities</li>
+            <li>Enjoy a clean, modern interface with dark and light themes</li>
+        </ul>
+    </div>
+
+    <div class="card p-8 rounded-lg mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Built with Care</h2>
+        <p class="text-lg mb-4" style="color: var(--text-secondary); line-height: 1.8;">
+            List Point is developed and maintained by a solo developer who's passionate about creating software that's both functional and enjoyable to use. Every feature is thoughtfully designed to provide a seamless user experience while keeping things simple and intuitive.
+        </p>
+        <p class="text-lg" style="color: var(--text-secondary); line-height: 1.8;">
+            As a one-person operation, I'm committed to continuously improving the platform based on user feedback and evolving needs. Your support helps keep List Point running and growing!
+        </p>
+    </div>
+
+    <div class="text-center py-6">
+        <p class="text-lg mb-4" style="color: var(--text-secondary);">
+            Thank you for being part of the List Point community!
+        </p>
+        <a href="{{ url_for('index') }}" class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-blue-700 transition">
+            Get Started with Your Lists
+        </a>
+    </div>
+</div>
+{% endblock %}
