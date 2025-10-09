@@ -160,6 +160,16 @@ def landing():
     adsense_publisher_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', '')
     return render_template('landing.html', adsense_publisher_id=adsense_publisher_id)
 
+@app.route('/about')
+def about():
+    theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
+    return render_template('about.html', theme=theme)
+
+@app.route('/contact')
+def contact():
+    theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
+    return render_template('contact.html', theme=theme)
+
 @app.route('/lists/create', methods=['GET', 'POST'])
 @login_required
 def create_list():
