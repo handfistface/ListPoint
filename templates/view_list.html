@@ -137,6 +137,33 @@
     </div>
 </div>
 
+<div id="edit-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeEditModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Edit Item</h3>
+        <input 
+            type="text" 
+            id="edit-item-input" 
+            class="w-full p-3 rounded border mb-4"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+            placeholder="Enter item text..."
+        >
+        <div class="flex justify-end gap-3">
+            <button 
+                onclick="closeEditModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
+            </button>
+            <button 
+                onclick="saveEditedItem()" 
+                class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+                Save
+            </button>
+        </div>
+    </div>
+</div>
+
 <form id="delete-form" method="POST" action="{{ url_for('delete_list', list_id=current_list._id) }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
@@ -301,16 +328,51 @@ function setupItemEventListeners() {
     }, { passive: true });
 }
 
-async function editItem(itemId, currentText) {
-    const newText = prompt('Edit item:', currentText);
+let editingItemId = null;
+let editingItemText = null;
+
+function editItem(itemId, currentText) {
+    editingItemId = itemId;
+    editingItemText = currentText;
     
-    if (!newText || newText.trim() === '' || newText.trim() === currentText) {
+    const modal = document.getElementById('edit-item-modal');
+    const input = document.getElementById('edit-item-input');
+    
+    input.value = currentText;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 100);
+}
+
+function closeEditModal(event) {
+    if (event && event.target.id !== 'edit-item-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('edit-item-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    
+    editingItemId = null;
+    editingItemText = null;
+}
+
+async function saveEditedItem() {
+    const input = document.getElementById('edit-item-input');
+    const newText = input.value.trim();
+    
+    if (!newText || newText === editingItemText) {
+        closeEditModal();
         return;
     }
     
     const endpoint = (isEthereal && currentMode === 'edit')
-        ? `/api/lists/${listId}/original/items/${itemId}`
-        : `/api/lists/${listId}/items/${itemId}`;
+        ? `/api/lists/${listId}/original/items/${editingItemId}`
+        : `/api/lists/${listId}/items/${editingItemId}`;
     
     const response = await fetch(endpoint, {
         method: 'PUT',
@@ -318,7 +380,7 @@ async function editItem(itemId, currentText) {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ text: newText.trim() })
+        body: JSON.stringify({ text: newText })
     });
     
     const result = await response.json();
@@ -326,14 +388,14 @@ async function editItem(itemId, currentText) {
     if (result.success) {
         showModal('✓ Item updated successfully', 'success');
         
-        const itemRow = document.querySelector(`[data-item-id="${itemId}"]`);
+        const itemRow = document.querySelector(`[data-item-id="${editingItemId}"]`);
         const itemTextSpan = itemRow.querySelector('.item-text');
-        itemTextSpan.textContent = newText.trim();
-        itemRow.setAttribute('data-item-text', newText.trim());
+        itemTextSpan.textContent = newText;
+        itemRow.setAttribute('data-item-text', newText);
         
         const itemsList = document.getElementById('items-list');
         const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const updatedText = newText.trim().toLowerCase();
+        const updatedText = newText.toLowerCase();
         
         itemRow.remove();
         
@@ -348,10 +410,28 @@ async function editItem(itemId, currentText) {
         } else {
             itemsList.insertBefore(itemRow, items[insertIndex]);
         }
+        
+        closeEditModal();
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
 }
+
+document.getElementById('edit-item-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        saveEditedItem();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('edit-item-modal');
+        if (!modal.classList.contains('hidden')) {
+            closeEditModal();
+        }
+    }
+});
 
 setupItemEventListeners();
 
