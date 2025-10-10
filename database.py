@@ -410,7 +410,21 @@ class Database:
             'item_text': old_text
         })
         
-        if old_entry:
+        new_entry = self.db.autocomplete_cache.find_one({
+            'user_id': ObjectId(user_id),
+            'item_text': new_text
+        })
+        
+        if old_entry and new_entry:
+            self.db.autocomplete_cache.delete_one({'_id': old_entry['_id']})
+            self.db.autocomplete_cache.update_one(
+                {'_id': new_entry['_id']},
+                {
+                    '$set': {'last_used': datetime.utcnow()},
+                    '$inc': {'frequency': 1}
+                }
+            )
+        elif old_entry:
             self.db.autocomplete_cache.update_one(
                 {'_id': old_entry['_id']},
                 {
