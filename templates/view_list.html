@@ -137,6 +137,25 @@
     </div>
 </div>
 
+<div id="context-menu" class="fixed hidden card rounded-lg shadow-lg z-50" style="min-width: 160px;">
+    <div class="py-1">
+        <button 
+            onclick="copyItemText()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            📋 Copy Text
+        </button>
+        <button 
+            onclick="editItemFromMenu()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            ✏️ Edit Item
+        </button>
+    </div>
+</div>
+
 <div id="edit-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeEditModal(event)">
     <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
         <h3 class="text-xl font-bold mb-4">Edit Item</h3>
@@ -284,6 +303,8 @@ function selectSuggestion(text) {
 
 let longPressTimer = null;
 let longPressTriggered = false;
+let contextMenuItemId = null;
+let contextMenuItemText = null;
 
 function setupItemEventListeners() {
     const itemsList = document.getElementById('items-list');
@@ -294,7 +315,7 @@ function setupItemEventListeners() {
             e.preventDefault();
             const itemId = itemRow.getAttribute('data-item-id');
             const currentText = itemRow.getAttribute('data-item-text');
-            editItem(itemId, currentText);
+            showContextMenu(e.clientX, e.clientY, itemId, currentText);
         }
     });
     
@@ -308,7 +329,8 @@ function setupItemEventListeners() {
             longPressTimer = setTimeout(() => {
                 longPressTriggered = true;
                 navigator.vibrate && navigator.vibrate(50);
-                editItem(itemId, currentText);
+                const touch = e.touches[0];
+                showContextMenu(touch.clientX, touch.clientY, itemId, currentText);
             }, 500);
         }
     }, { passive: true });
@@ -327,6 +349,69 @@ function setupItemEventListeners() {
         }
     }, { passive: true });
 }
+
+function showContextMenu(x, y, itemId, itemText) {
+    contextMenuItemId = itemId;
+    contextMenuItemText = itemText;
+    
+    const contextMenu = document.getElementById('context-menu');
+    contextMenu.classList.remove('hidden');
+    
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    
+    const menuRect = contextMenu.getBoundingClientRect();
+    if (menuRect.right > window.innerWidth) {
+        contextMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+    }
+    if (menuRect.bottom > window.innerHeight) {
+        contextMenu.style.top = `${window.innerHeight - menuRect.height - 10}px`;
+    }
+}
+
+function hideContextMenu() {
+    const contextMenu = document.getElementById('context-menu');
+    contextMenu.classList.add('hidden');
+    contextMenuItemId = null;
+    contextMenuItemText = null;
+}
+
+function copyItemText() {
+    if (!contextMenuItemText) return;
+    
+    navigator.clipboard.writeText(contextMenuItemText).then(() => {
+        showModal('✓ Text copied to clipboard', 'success');
+    }).catch(err => {
+        const textArea = document.createElement('textarea');
+        textArea.value = contextMenuItemText;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showModal('✓ Text copied to clipboard', 'success');
+        } catch (err) {
+            showModal('✗ Failed to copy text', 'error');
+        }
+        document.body.removeChild(textArea);
+    });
+    
+    hideContextMenu();
+}
+
+function editItemFromMenu() {
+    if (!contextMenuItemId || !contextMenuItemText) return;
+    hideContextMenu();
+    editItem(contextMenuItemId, contextMenuItemText);
+}
+
+document.addEventListener('click', (e) => {
+    const contextMenu = document.getElementById('context-menu');
+    if (!contextMenu.contains(e.target)) {
+        hideContextMenu();
+    }
+});
 
 let editingItemId = null;
 let editingItemText = null;
