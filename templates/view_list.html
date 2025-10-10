@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}{{ current_list.name }} - List Point{% endblock %}
+{% block description %}View and manage {{ current_list.name }} on List Point. {% if current_list.tags %}Tags: {{ current_list.tags|join(', ') }}.{% endif %} {% if current_list.is_ethereal %}Check list with restore functionality.{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">

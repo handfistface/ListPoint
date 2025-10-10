@@ -3,7 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}List Point{% endblock %}</title>
+    <title>{% block title %}List Point - Create, Share & Manage Lists Online{% endblock %}</title>
+    <meta name="description" content="{% block description %}Create and share lists effortlessly with List Point. Organize tasks, ideas, and collaborate with others through our simple list management tool.{% endblock %}">
+    <meta name="keywords" content="online list maker, shared list app, collaborative task lists, free list organizer, task management, list sharing, organize ideas">
+    
+    <!-- Open Graph Tags for Social Sharing -->
+    <meta property="og:title" content="{% block og_title %}List Point - Create, Share & Manage Lists Online{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Create and share lists effortlessly with List Point. Organize tasks, ideas, and collaborate with others through our simple list management tool.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:site_name" content="List Point">
+    {% block og_image %}
+    <meta property="og:image" content="{{ url_for('static', filename='logo.png', _external=True) }}">
+    {% endblock %}
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}List Point - Create, Share & Manage Lists Online{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Create and share lists effortlessly with List Point. Organize tasks, ideas, and collaborate with others through our simple list management tool.{% endblock %}">
+    
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "List Point",
+      "url": "{{ request.url_root }}",
+      "description": "Create and share lists effortlessly with List Point. Organize tasks, ideas, and collaborate with others through our simple list management tool.",
+      "applicationCategory": "ProductivityApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": "Create lists, Share lists, Collaborate with others, Manage tasks, Organize ideas",
+      "operatingSystem": "Web Browser"
+    }
+    </script>
+    
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8884247539322823"
      crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>

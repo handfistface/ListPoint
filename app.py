@@ -170,6 +170,49 @@ def contact():
     theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
     return render_template('contact.html', theme=theme)
 
+@app.route('/sitemap.xml')
+def sitemap():
+    pages = []
+    ten_days_ago = (datetime.now() - timedelta(days=10)).date().isoformat()
+    
+    for rule in app.url_map.iter_rules():
+        if "GET" in rule.methods and len(rule.arguments) == 0:
+            if rule.endpoint not in ['static', 'sitemap', 'robots', 'stripe_webhook', 'objects', 'logout']:
+                if not rule.rule.startswith('/api/') and not rule.rule.startswith('/admin/'):
+                    pages.append({
+                        'loc': url_for(rule.endpoint, _external=True),
+                        'lastmod': ten_days_ago,
+                        'changefreq': 'weekly',
+                        'priority': '1.0' if rule.endpoint == 'index' else '0.8'
+                    })
+    
+    sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    sitemap_xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for page in pages:
+        sitemap_xml += '  <url>\n'
+        sitemap_xml += f'    <loc>{page["loc"]}</loc>\n'
+        sitemap_xml += f'    <lastmod>{page["lastmod"]}</lastmod>\n'
+        sitemap_xml += f'    <changefreq>{page["changefreq"]}</changefreq>\n'
+        sitemap_xml += f'    <priority>{page["priority"]}</priority>\n'
+        sitemap_xml += '  </url>\n'
+    
+    sitemap_xml += '</urlset>'
+    
+    return Response(sitemap_xml, mimetype='application/xml')
+
+@app.route('/robots.txt')
+def robots():
+    robots_txt = f"""User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings
+
+Sitemap: {url_for('sitemap', _external=True)}
+"""
+    return Response(robots_txt, mimetype='text/plain')
+
 @app.route('/lists/create', methods=['GET', 'POST'])
 @login_required
 def create_list():

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Edit List - List Point{% endblock %}
+{% block title %}Edit {{ current_list.name }} - List Point{% endblock %}
+{% block description %}Edit your list settings, manage collaborators, and update items for {{ current_list.name }} on List Point.{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
@@ -20,9 +21,9 @@
             <label class="block mb-2 font-semibold">Thumbnail Image (optional, max 500KB)</label>
             <div id="thumbnail-preview-container" class="mb-2">
                 {% if current_list.thumbnail_url %}
-                    <img id="thumbnail-preview" src="{{ current_list.thumbnail_url }}" alt="Current thumbnail" class="h-40 object-cover rounded">
+                    <img id="thumbnail-preview" src="{{ current_list.thumbnail_url }}" alt="Thumbnail for {{ current_list.name }}" class="h-40 object-cover rounded">
                 {% else %}
-                    <img id="thumbnail-preview" src="" alt="Preview" class="h-40 object-cover rounded hidden">
+                    <img id="thumbnail-preview" src="" alt="Thumbnail preview" class="h-40 object-cover rounded hidden">
                 {% endif %}
             </div>
             <input type="file" id="thumbnail-input" name="thumbnail" accept="image/*" class="hidden">

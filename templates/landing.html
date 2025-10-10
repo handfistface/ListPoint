@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% block title %}List Point - Create, Share & Manage Lists Online{% endblock %}
+{% block description %}Create and share lists effortlessly with List Point. Organize tasks, ideas, and collaborate with others through our simple list management tool. Free online list maker.{% endblock %}
+
 {% block content %}
 {% if not current_user.is_authenticated or not current_user.subscription.get('is_ad_free', False) %}
 <div class="ad-container max-w-6xl mx-auto mb-6" style="display:none;min-height:0;overflow:hidden;">
@@ -16,7 +19,7 @@
 {% endif %}
 
 <div class="flex flex-col items-center justify-center min-h-[70vh] text-center">
-    <h1 class="text-5xl font-bold mb-6">Welcome to List Point</h1>
+    <h1 class="text-5xl font-bold mb-6">List Point</h1>
     <p class="text-xl mb-8" style="color: var(--text-secondary); max-width: 600px;">
         Create, manage, and share lists with ease. Track your tasks, organize your ideas, and discover lists from others.
     </p>
