@@ -39,8 +39,9 @@ The application features a clean, minimalistic design with a responsive interfac
 - Check lists store an `original_items` snapshot for restoration.
 - `items` in check lists have a `checked` field.
 - Image cropping uses a canvas-based interface, maintaining a 160px height / 300px width aspect ratio, with touch and mouse event support.
-- Autocomplete cache tracks user's item history for suggestions and is updated when items are edited.
+- Autocomplete cache tracks user's item history for suggestions. When items are edited, the old autocomplete entry is replaced with the new text (not duplicated).
 - Item editing is accessible via right-click (desktop) or long-press (mobile) on any item, with event delegation for optimal performance.
+- Edit modal is a custom themed component matching the site's dark/light theme with keyboard shortcuts (Enter to save, Escape to cancel).
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
 
