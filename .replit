@@ -27,7 +27,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash start_mongo.sh"
+args = "python app.py"
 waitForPort = 5000
 
 [[ports]]

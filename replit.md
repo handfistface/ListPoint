@@ -19,6 +19,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management (add, delete, adjust quantity) for both owners and collaborators.
 - **Image Handling**: Client-side image cropping and compression (up to 500KB) with a custom file picker and visual feedback. Images are converted to JPEG for optimal compression.
 - **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal. Ad display logic intelligently handles ad loading and ensures no whitespace is shown if ads fail to load.
+- **SEO Optimization**: Comprehensive SEO implementation including optimized title tags, unique meta descriptions for all pages, Open Graph tags for social sharing, Twitter Card tags, Schema.org structured data (WebApplication), XML sitemap (accessible at /sitemap.xml), robots.txt configuration, and descriptive alt text for all images. Targets keywords: "online list maker", "shared list app", "collaborative task lists", "free list organizer".
 
 ### Feature Specifications
 - **User Accounts**: Registration, login, session management.
