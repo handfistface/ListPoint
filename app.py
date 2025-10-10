@@ -213,6 +213,10 @@ Sitemap: {url_for('sitemap', _external=True)}
 """
     return Response(robots_txt, mimetype='text/plain')
 
+@app.route('/google76025c41dd521010.html')
+def google_verification():
+    return Response('google-site-verification: google76025c41dd521010.html', mimetype='text/html')
+
 @app.route('/lists/create', methods=['GET', 'POST'])
 @login_required
 def create_list():
