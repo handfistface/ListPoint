@@ -15,7 +15,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Authentication**: Flask-Login handles user registration, login, session management, and password hashing using Werkzeug.
 - **Admin Interface**: Secure admin panel for user management. Admins can view all users (excluding password hashes), edit user fields (except passwords), manage roles and groups, and toggle admin status. All admin routes are protected with authorization checks. Access to the admin panel is shown conditionally in the navigation menu based on the user's admin status.
 - **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" which act as templates. Check Lists have "Check Off Mode" for temporary checking and "Edit Mode" for permanent template modification. Items are automatically sorted alphabetically.
-- **Item Management**: Includes features like click-to-delete, autocomplete suggestions, and an undo system for deleted items.
+- **Item Management**: Includes features like click-to-delete, right-click/long-press to edit items, autocomplete suggestions, and an undo system for deleted items.
 - **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management (add, delete, adjust quantity) for both owners and collaborators.
 - **Image Handling**: Client-side image cropping and compression (up to 500KB) with a custom file picker and visual feedback. Images are converted to JPEG for optimal compression.
 - **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal. Ad display logic intelligently handles ad loading and ensures no whitespace is shown if ads fail to load.
@@ -26,7 +26,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection.
 - **List Creation**: Name, thumbnail, tags, visibility (public/private).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
-- **Item Operations**: Add, delete, check/uncheck (for Check Lists), undo.
+- **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo.
 - **Discovery**: Browse, search, filter lists by tags.
 - **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
 - **Favorites**: Mark/unmark lists as favorites for quick access.
@@ -39,7 +39,8 @@ The application features a clean, minimalistic design with a responsive interfac
 - Check lists store an `original_items` snapshot for restoration.
 - `items` in check lists have a `checked` field.
 - Image cropping uses a canvas-based interface, maintaining a 160px height / 300px width aspect ratio, with touch and mouse event support.
-- Autocomplete cache tracks user's item history for suggestions.
+- Autocomplete cache tracks user's item history for suggestions and is updated when items are edited.
+- Item editing is accessible via right-click (desktop) or long-press (mobile) on any item, with event delegation for optimal performance.
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
 
