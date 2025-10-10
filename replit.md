@@ -44,6 +44,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - Context menu automatically positions itself to stay within viewport boundaries and matches the site's theme.
 - Copy functionality uses Clipboard API with fallback for older browsers.
 - Edit modal is a custom themed component matching the site's dark/light theme with keyboard shortcuts (Enter to save, Escape to cancel).
+- List items have text selection disabled (user-select: none) to prevent system dialogs from interfering with custom context menu.
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
 

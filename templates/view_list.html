@@ -105,7 +105,7 @@
         <div id="items-list" class="space-y-2">
             {% if current_list['items'] %}
                 {% for item in current_list['items'] %}
-                    <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
+                    <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
                         <div class="flex items-center gap-3 flex-1">
                             <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
                                    onchange="toggleItemChecked('{{ item._id }}')" 
@@ -556,6 +556,10 @@ async function addItem() {
         newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
         newItemDiv.style.backgroundColor = 'var(--bg-primary)';
         newItemDiv.style.cursor = 'pointer';
+        newItemDiv.style.userSelect = 'none';
+        newItemDiv.style.webkitUserSelect = 'none';
+        newItemDiv.style.mozUserSelect = 'none';
+        newItemDiv.style.msUserSelect = 'none';
         newItemDiv.setAttribute('data-item-id', result.item_id);
         newItemDiv.setAttribute('data-item-text', text);
         newItemDiv.setAttribute('data-checked', 'false');
@@ -740,6 +744,10 @@ async function undoDelete() {
         newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
         newItemDiv.style.backgroundColor = 'var(--bg-primary)';
         newItemDiv.style.cursor = 'pointer';
+        newItemDiv.style.userSelect = 'none';
+        newItemDiv.style.webkitUserSelect = 'none';
+        newItemDiv.style.mozUserSelect = 'none';
+        newItemDiv.style.msUserSelect = 'none';
         newItemDiv.setAttribute('data-item-id', result.item_id);
         newItemDiv.setAttribute('data-item-text', item.text);
         newItemDiv.setAttribute('data-checked', 'false');
