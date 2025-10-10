@@ -404,6 +404,25 @@ class Database:
                 'frequency': 1
             })
     
+    def replace_autocomplete_entry(self, user_id, old_text, new_text):
+        old_entry = self.db.autocomplete_cache.find_one({
+            'user_id': ObjectId(user_id),
+            'item_text': old_text
+        })
+        
+        if old_entry:
+            self.db.autocomplete_cache.update_one(
+                {'_id': old_entry['_id']},
+                {
+                    '$set': {
+                        'item_text': new_text,
+                        'last_used': datetime.utcnow()
+                    }
+                }
+            )
+        else:
+            self.update_autocomplete_cache(user_id, new_text)
+    
     def update_user_subscription(self, user_id, stripe_customer_id, stripe_subscription_id, is_ad_free, subscription_start=None, subscription_end=None):
         self.db.users.update_one(
             {'_id': ObjectId(user_id)},

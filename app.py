@@ -472,8 +472,8 @@ def update_item(list_id, item_id):
     
     success, message, old_text = db.update_item_text(list_id, item_id, new_text)
     
-    if success:
-        db.update_autocomplete_cache(current_user.id, new_text)
+    if success and old_text:
+        db.replace_autocomplete_entry(current_user.id, old_text, new_text)
     
     return jsonify({'success': success, 'message': message, 'old_text': old_text})
 
@@ -492,8 +492,8 @@ def update_item_in_original(list_id, item_id):
     
     success, message, old_text = db.update_item_text_in_original(list_id, item_id, new_text)
     
-    if success:
-        db.update_autocomplete_cache(current_user.id, new_text)
+    if success and old_text:
+        db.replace_autocomplete_entry(current_user.id, old_text, new_text)
     
     return jsonify({'success': success, 'message': message, 'old_text': old_text})
 
