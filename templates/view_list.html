@@ -403,8 +403,10 @@ function copyItemText() {
 
 function editItemFromMenu() {
     if (!contextMenuItemId || !contextMenuItemText) return;
+    const itemId = contextMenuItemId;
+    const itemText = contextMenuItemText;
     hideContextMenu();
-    editItem(contextMenuItemId, contextMenuItemText);
+    editItem(itemId, itemText);
 }
 
 document.addEventListener('click', (e) => {
