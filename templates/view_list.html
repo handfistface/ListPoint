@@ -374,6 +374,7 @@ function hideContextMenu() {
     contextMenu.classList.add('hidden');
     contextMenuItemId = null;
     contextMenuItemText = null;
+    longPressTriggered = false;
 }
 
 function copyItemText() {
@@ -600,6 +601,11 @@ async function addItem() {
 
 async function deleteItemByRow(itemId, event) {
     if (!isOwner && !isCollaborator) return;
+    
+    if (longPressTriggered) {
+        longPressTriggered = false;
+        return;
+    }
     
     const target = event.target;
     if (target.classList.contains('quantity-btn') || target.classList.contains('item-checkbox')) {

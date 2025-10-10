@@ -40,7 +40,9 @@ The application features a clean, minimalistic design with a responsive interfac
 - `items` in check lists have a `checked` field.
 - Image cropping uses a canvas-based interface, maintaining a 160px height / 300px width aspect ratio, with touch and mouse event support.
 - Autocomplete cache tracks user's item history for suggestions. When items are edited, the old autocomplete entry is replaced with the new text (not duplicated).
-- Item editing is accessible via right-click (desktop) or long-press (mobile) on any item, with event delegation for optimal performance.
+- Context menu appears on right-click (desktop) or long-press 500ms (mobile) on any item, offering "Copy Text" and "Edit Item" options.
+- Context menu automatically positions itself to stay within viewport boundaries and matches the site's theme.
+- Copy functionality uses Clipboard API with fallback for older browsers.
 - Edit modal is a custom themed component matching the site's dark/light theme with keyboard shortcuts (Enter to save, Escape to cancel).
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
