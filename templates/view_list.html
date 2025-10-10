@@ -255,6 +255,106 @@ function selectSuggestion(text) {
     addItem();
 }
 
+let longPressTimer = null;
+let longPressTriggered = false;
+
+function setupItemEventListeners() {
+    const itemsList = document.getElementById('items-list');
+    
+    itemsList.addEventListener('contextmenu', (e) => {
+        const itemRow = e.target.closest('.item-row');
+        if (itemRow) {
+            e.preventDefault();
+            const itemId = itemRow.getAttribute('data-item-id');
+            const currentText = itemRow.getAttribute('data-item-text');
+            editItem(itemId, currentText);
+        }
+    });
+    
+    itemsList.addEventListener('touchstart', (e) => {
+        const itemRow = e.target.closest('.item-row');
+        if (itemRow) {
+            longPressTriggered = false;
+            const itemId = itemRow.getAttribute('data-item-id');
+            const currentText = itemRow.getAttribute('data-item-text');
+            
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                navigator.vibrate && navigator.vibrate(50);
+                editItem(itemId, currentText);
+            }, 500);
+        }
+    }, { passive: true });
+    
+    itemsList.addEventListener('touchend', (e) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    }, { passive: true });
+    
+    itemsList.addEventListener('touchmove', (e) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    }, { passive: true });
+}
+
+async function editItem(itemId, currentText) {
+    const newText = prompt('Edit item:', currentText);
+    
+    if (!newText || newText.trim() === '' || newText.trim() === currentText) {
+        return;
+    }
+    
+    const endpoint = (isEthereal && currentMode === 'edit')
+        ? `/api/lists/${listId}/original/items/${itemId}`
+        : `/api/lists/${listId}/items/${itemId}`;
+    
+    const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ text: newText.trim() })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Item updated successfully', 'success');
+        
+        const itemRow = document.querySelector(`[data-item-id="${itemId}"]`);
+        const itemTextSpan = itemRow.querySelector('.item-text');
+        itemTextSpan.textContent = newText.trim();
+        itemRow.setAttribute('data-item-text', newText.trim());
+        
+        const itemsList = document.getElementById('items-list');
+        const items = Array.from(itemsList.querySelectorAll('.item-row'));
+        const updatedText = newText.trim().toLowerCase();
+        
+        itemRow.remove();
+        
+        const insertIndex = items.findIndex(item => {
+            if (item === itemRow) return false;
+            const itemText = item.querySelector('.item-text').textContent;
+            return itemText.toLowerCase() > updatedText;
+        });
+        
+        if (insertIndex === -1) {
+            itemsList.appendChild(itemRow);
+        } else {
+            itemsList.insertBefore(itemRow, items[insertIndex]);
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+}
+
+setupItemEventListeners();
+
 async function addItem() {
     const text = itemInput.value.trim();
     if (!text) return;

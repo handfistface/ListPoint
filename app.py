@@ -454,6 +454,49 @@ def adjust_quantity(list_id, item_id):
     
     return jsonify({'success': success, 'message': message, 'quantity': new_quantity})
 
+@app.route('/api/lists/<list_id>/items/<item_id>', methods=['PUT'])
+@login_required
+def update_item(list_id, item_id):
+    list_doc = db.get_list_by_id(list_id)
+    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc or (not is_owner and not is_collaborator):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    new_text = data.get('text', '').strip()
+    
+    if not new_text:
+        return jsonify({'success': False, 'message': 'Item text is required'}), 400
+    
+    success, message, old_text = db.update_item_text(list_id, item_id, new_text)
+    
+    if success:
+        db.update_autocomplete_cache(current_user.id, new_text)
+    
+    return jsonify({'success': success, 'message': message, 'old_text': old_text})
+
+@app.route('/api/lists/<list_id>/original/items/<item_id>', methods=['PUT'])
+@login_required
+def update_item_in_original(list_id, item_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    new_text = data.get('text', '').strip()
+    
+    if not new_text:
+        return jsonify({'success': False, 'message': 'Item text is required'}), 400
+    
+    success, message, old_text = db.update_item_text_in_original(list_id, item_id, new_text)
+    
+    if success:
+        db.update_autocomplete_cache(current_user.id, new_text)
+    
+    return jsonify({'success': success, 'message': message, 'old_text': old_text})
+
 @app.route('/api/lists/<list_id>/original/items', methods=['POST'])
 @login_required
 def add_item_to_original(list_id):

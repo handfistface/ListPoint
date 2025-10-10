@@ -266,6 +266,87 @@ class Database:
         )
         return True, 'Quantity updated'
     
+    def update_item_text(self, list_id, item_id, new_text):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found', None
+        
+        items = list_doc.get('items', [])
+        old_text = None
+        item_found = False
+        
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                old_text = item['text']
+                if old_text.lower() == new_text.lower():
+                    return False, 'New text is the same as current text', old_text
+                item_found = True
+            elif item['text'].lower() == new_text.lower():
+                return False, 'An item with this text already exists', old_text
+        
+        if not item_found:
+            return False, 'Item not found', None
+        
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                item['text'] = new_text
+                break
+        
+        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+        )
+        
+        return True, 'Item updated successfully', old_text
+    
+    def update_item_text_in_original(self, list_id, item_id, new_text):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc or not list_doc.get('is_ethereal'):
+            return False, 'Not an ethereal list', None
+        
+        items = list_doc.get('items', [])
+        original_items = list_doc.get('original_items', [])
+        old_text = None
+        item_found = False
+        
+        for item in original_items:
+            if str(item['_id']) == str(item_id):
+                old_text = item['text']
+                if old_text.lower() == new_text.lower():
+                    return False, 'New text is the same as current text', old_text
+                item_found = True
+            elif item['text'].lower() == new_text.lower():
+                return False, 'An item with this text already exists', old_text
+        
+        if not item_found:
+            return False, 'Item not found', None
+        
+        for item in original_items:
+            if str(item['_id']) == str(item_id):
+                item['text'] = new_text
+                break
+        
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                item['text'] = new_text
+                break
+        
+        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        sorted_original = sorted(original_items, key=lambda x: x['text'].lower())
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {
+                'items': sorted_items,
+                'original_items': sorted_original,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        return True, 'Item updated successfully', old_text
+    
     def is_favorited(self, user_id, list_id):
         return self.db.favorites.find_one({
             'user_id': ObjectId(user_id),
