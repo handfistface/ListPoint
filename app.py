@@ -582,7 +582,8 @@ def api_explore():
             'is_ethereal': lst.get('is_ethereal', False),
             'owner_username': owner['username'] if owner else 'Unknown',
             'tags': lst.get('tags', []),
-            'is_favorited': False
+            'is_favorited': False,
+            'updated_at': lst.get('updated_at').isoformat() if lst.get('updated_at') else None
         }
         
         if current_user.is_authenticated:
