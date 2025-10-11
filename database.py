@@ -83,7 +83,7 @@ class Database:
     def get_list_by_id(self, list_id):
         return self.db.lists.find_one({'_id': ObjectId(list_id)})
     
-    def create_list(self, name, owner_id, thumbnail_url='', is_public=False, is_ethereal=False, tags=None, items=None):
+    def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None):
         items = items or []
         sorted_items = sorted(items, key=lambda x: x['text'].lower())
         

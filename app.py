@@ -252,7 +252,7 @@ def create_list():
             name=form.name.data,
             owner_id=current_user.id,
             thumbnail_url=thumbnail_url,
-            is_public=form.is_public.data,
+            is_public=True,
             is_ethereal=form.is_ethereal.data,
             tags=tags
         )
@@ -309,7 +309,7 @@ def edit_list(list_id):
         update_data = {
             'name': form.name.data,
             'tags': tags,
-            'is_public': form.is_public.data
+            'is_public': True
         }
         
         if 'thumbnail' in request.files:
@@ -337,7 +337,7 @@ def edit_list(list_id):
     
     form.name.data = list_doc['name']
     form.tags.data = ', '.join(list_doc.get('tags', []))
-    form.is_public.data = list_doc['is_public']
+    form.is_public.data = True
     form.is_ethereal.data = list_doc.get('is_ethereal', False)
     
     collaborators_info = []
