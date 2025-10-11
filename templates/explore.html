@@ -7,10 +7,11 @@
 <div class="mb-8">
     <h1 class="text-3xl font-bold mb-6">Explore Public Lists</h1>
     
-    <form method="GET" class="mb-6">
+    <form id="search-form" class="mb-6">
         <div class="flex gap-4">
             <input 
                 type="text" 
+                id="search-input"
                 name="q" 
                 value="{{ search_query }}" 
                 placeholder="Search lists..." 
@@ -23,59 +24,22 @@
         </div>
     </form>
     
-    {% if lists %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {% for list in lists %}
-                <div class="card p-4 rounded-lg relative">
-                    {% if current_user.is_authenticated %}
-                        <button 
-                            onclick="toggleFavorite('{{ list._id|string }}', this, event)" 
-                            class="absolute top-2 right-2 text-3xl z-10 hover:scale-110 transition-transform"
-                            data-favorited="{{ 'true' if list.is_favorited else 'false' }}"
-                        >
-                            {% if list.is_favorited %}⭐{% else %}☆{% endif %}
-                        </button>
-                    {% endif %}
-                    <a href="{{ url_for('view_list', list_id=list._id|string) }}" class="block hover:opacity-80">
-                        {% if list.thumbnail_url %}
-                            <img src="{{ list.thumbnail_url }}" alt="{{ list.name }}" class="w-full h-40 object-cover rounded mb-3">
-                        {% else %}
-                            <div class="w-full h-40 bg-gray-600 rounded mb-3 flex items-center justify-center">
-                                <span class="text-4xl">📋</span>
-                            </div>
-                        {% endif %}
-                        <h3 class="font-bold text-lg mb-1">
-                            {{ list.name }}
-                            {% if list.is_ethereal %}
-                                <span class="text-sm">✓</span>
-                            {% endif %}
-                        </h3>
-                        <p class="text-sm mb-2" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
-                    </a>
-                    
-                    {% if list.tags %}
-                        <div class="flex flex-wrap gap-1 mt-2">
-                            {% for tag in list.tags[:3] %}
-                                <span class="text-xs px-2 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
-                                    #{{ tag }}
-                                </span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="text-center py-12" style="color: var(--text-secondary);">
-            <p class="text-xl">No public lists found</p>
-        </div>
-    {% endif %}
+    <div id="lists-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    </div>
+    
+    <div id="loading-indicator" class="text-center py-8 hidden">
+        <p class="text-xl" style="color: var(--text-secondary);">Loading more lists...</p>
+    </div>
+    
+    <div id="no-lists-message" class="text-center py-12 hidden" style="color: var(--text-secondary);">
+        <p class="text-xl">No public lists found</p>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-{% if current_user.is_authenticated %}
 <script>
+{% if current_user.is_authenticated %}
 const csrfToken = '{{ csrf_token() }}';
 
 async function toggleFavorite(listId, button, event) {
@@ -101,6 +65,131 @@ async function toggleFavorite(listId, button, event) {
         }
     }
 }
-</script>
 {% endif %}
+
+let currentSkip = 0;
+let isLoading = false;
+let hasMore = true;
+let currentSearchQuery = '{{ search_query }}';
+
+function createListCard(list) {
+    const card = document.createElement('div');
+    card.className = 'card p-4 rounded-lg relative';
+    card.setAttribute('data-list-id', list.id);
+    
+    let favoriteButton = '';
+    {% if current_user.is_authenticated %}
+    favoriteButton = `
+        <button 
+            onclick="toggleFavorite('${list.id}', this, event)" 
+            class="absolute top-2 right-2 text-3xl z-10 hover:scale-110 transition-transform"
+            data-favorited="${list.is_favorited ? 'true' : 'false'}"
+        >
+            ${list.is_favorited ? '⭐' : '☆'}
+        </button>
+    `;
+    {% endif %}
+    
+    const thumbnail = list.thumbnail_url 
+        ? `<img src="${list.thumbnail_url}" alt="${list.name}" class="w-full h-40 object-cover rounded mb-3">`
+        : `<div class="w-full h-40 bg-gray-600 rounded mb-3 flex items-center justify-center">
+               <span class="text-4xl">📋</span>
+           </div>`;
+    
+    const etherealIcon = list.is_ethereal ? '<span class="text-sm">✓</span>' : '';
+    
+    const tags = list.tags && list.tags.length > 0
+        ? `<div class="flex flex-wrap gap-1 mt-2">
+               ${list.tags.slice(0, 3).map(tag => 
+                   `<span class="text-xs px-2 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
+                       #${tag}
+                   </span>`
+               ).join('')}
+           </div>`
+        : '';
+    
+    card.innerHTML = `
+        ${favoriteButton}
+        <a href="/list/${list.id}" class="block hover:opacity-80">
+            ${thumbnail}
+            <h3 class="font-bold text-lg mb-1">
+                ${list.name}
+                ${etherealIcon}
+            </h3>
+            <p class="text-sm mb-2" style="color: var(--text-secondary);">by @${list.owner_username}</p>
+        </a>
+        ${tags}
+    `;
+    
+    return card;
+}
+
+async function loadLists(reset = false) {
+    if (isLoading || (!hasMore && !reset)) return;
+    
+    if (reset) {
+        currentSkip = 0;
+        hasMore = true;
+    }
+    
+    isLoading = true;
+    document.getElementById('loading-indicator').classList.remove('hidden');
+    
+    try {
+        const response = await fetch(`/api/explore?q=${encodeURIComponent(currentSearchQuery)}&skip=${currentSkip}&limit=10`);
+        const data = await response.json();
+        
+        const container = document.getElementById('lists-container');
+        
+        if (reset) {
+            container.innerHTML = '';
+        }
+        
+        if (data.lists.length === 0 && currentSkip === 0) {
+            document.getElementById('no-lists-message').classList.remove('hidden');
+        } else {
+            document.getElementById('no-lists-message').classList.add('hidden');
+            data.lists.forEach(list => {
+                container.appendChild(createListCard(list));
+            });
+        }
+        
+        currentSkip += data.lists.length;
+        hasMore = data.has_more;
+        
+    } catch (error) {
+        console.error('Error loading lists:', error);
+    } finally {
+        isLoading = false;
+        document.getElementById('loading-indicator').classList.add('hidden');
+    }
+}
+
+function checkScrollPosition() {
+    const container = document.getElementById('lists-container');
+    const cards = container.querySelectorAll('.card');
+    
+    if (cards.length === 0) return;
+    
+    const targetIndex = Math.max(0, cards.length - 5);
+    const targetCard = cards[targetIndex];
+    const rect = targetCard.getBoundingClientRect();
+    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    
+    if (isVisible && hasMore && !isLoading) {
+        loadLists();
+    }
+}
+
+window.addEventListener('scroll', checkScrollPosition);
+window.addEventListener('resize', checkScrollPosition);
+
+document.getElementById('search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    currentSearchQuery = document.getElementById('search-input').value;
+    loadLists(true);
+});
+
+loadLists();
+</script>
 {% endblock %}

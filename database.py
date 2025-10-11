@@ -80,6 +80,14 @@ class Database:
             query['tags'] = {'$in': tags}
         return list(self.db.lists.find(query).sort('created_at', -1).limit(limit))
     
+    def get_public_lists_paginated(self, search_query=None, tags=None, skip=0, limit=10):
+        query = {'is_public': True}
+        if search_query:
+            query['name'] = {'$regex': search_query, '$options': 'i'}
+        if tags:
+            query['tags'] = {'$in': tags}
+        return list(self.db.lists.find(query).sort('updated_at', -1).skip(skip).limit(limit))
+    
     def get_list_by_id(self, list_id):
         return self.db.lists.find_one({'_id': ObjectId(list_id)})
     

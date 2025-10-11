@@ -555,25 +555,42 @@ def update_theme():
 @app.route('/explore')
 def explore():
     search_query = request.args.get('q', '')
-    tags_param = request.args.get('tags', '')
-    tags = [tag.strip() for tag in tags_param.split(',') if tag.strip()]
-    
-    public_lists = db.get_public_lists(search_query, tags if tags else None)
-    
-    for lst in public_lists:
-        owner = db.get_user_by_id(str(lst['owner_id']))
-        lst['owner_username'] = owner['username'] if owner else 'Unknown'
-        if current_user.is_authenticated:
-            lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
-        else:
-            lst['is_favorited'] = False
-    
     theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
     
     return render_template('explore.html', 
-                         lists=public_lists, 
                          search_query=search_query,
                          theme=theme)
+
+@app.route('/api/explore')
+def api_explore():
+    search_query = request.args.get('q', '')
+    tags_param = request.args.get('tags', '')
+    skip = int(request.args.get('skip', 0))
+    limit = int(request.args.get('limit', 10))
+    
+    tags = [tag.strip() for tag in tags_param.split(',') if tag.strip()]
+    
+    public_lists = db.get_public_lists_paginated(search_query, tags if tags else None, skip=skip, limit=limit)
+    
+    result = []
+    for lst in public_lists:
+        owner = db.get_user_by_id(str(lst['owner_id']))
+        list_data = {
+            'id': str(lst['_id']),
+            'name': lst['name'],
+            'thumbnail_url': lst.get('thumbnail_url', ''),
+            'is_ethereal': lst.get('is_ethereal', False),
+            'owner_username': owner['username'] if owner else 'Unknown',
+            'tags': lst.get('tags', []),
+            'is_favorited': False
+        }
+        
+        if current_user.is_authenticated:
+            list_data['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
+        
+        result.append(list_data)
+    
+    return jsonify({'lists': result, 'has_more': len(result) == limit})
 
 @app.route('/api/favorite/<list_id>', methods=['POST'])
 @login_required
