@@ -24,7 +24,7 @@ The application features a clean, minimalistic design with a responsive interfac
 ### Feature Specifications
 - **User Accounts**: Registration, login, session management.
 - **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection.
-- **List Creation**: Name, thumbnail, tags, visibility (public/private).
+- **List Creation**: Name, thumbnail, tags. All lists are public by default (as of October 11, 2025).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
 - **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo.
 - **Discovery**: Browse, search, filter lists by tags.
@@ -47,6 +47,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - List items have text selection disabled (user-select: none) to prevent system dialogs from interfering with custom context menu.
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
+- **List Visibility**: All lists are enforced as public. The visibility UI control is hidden from users, and backend code ensures `is_public=True` for all list creation and editing operations. This was implemented on October 11, 2025 to simplify the platform and promote list sharing.
 
 ## External Dependencies
 - **Database**: MongoDB (remote instance via MongoDB Atlas)
