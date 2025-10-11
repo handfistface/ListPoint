@@ -27,7 +27,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **List Creation**: Name, thumbnail, tags. All lists are public by default (as of October 11, 2025).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
 - **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo.
-- **Discovery**: Browse, search, filter lists by tags.
+- **Discovery**: Browse, search, filter lists by tags. Infinite scroll implementation loads 10 lists at a time, sorted by most recently updated, with automatic preloading when user scrolls through 5 items (implemented October 11, 2025).
 - **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
 - **Favorites**: Mark/unmark lists as favorites for quick access.
 - **Theming**: Dark/Light mode toggle with persistence.
