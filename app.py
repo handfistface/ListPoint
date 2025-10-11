@@ -4,7 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, PasswordField, BooleanField, TextAreaField
-from wtforms.validators import DataRequired, Email, Length, EqualTo
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+import re
 from database import Database
 from bson.objectid import ObjectId
 from PIL import Image
@@ -54,8 +55,14 @@ def load_user(user_id):
         return User(user_dict)
     return None
 
+def validate_username_not_email(form, field):
+    # Email regex pattern
+    email_pattern = r'^[^@]+@[^@]+\.[^@]+$'
+    if re.match(email_pattern, field.data):
+        raise ValidationError('Username cannot be an email address. Please choose a different username.')
+
 class RegisterForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50), validate_username_not_email])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
