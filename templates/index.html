@@ -30,7 +30,7 @@
                         <h3 class="font-bold text-lg mb-1">
                             {{ list.name }}
                             {% if list.is_ethereal %}
-                                <span class="text-sm">✨</span>
+                                <span class="text-sm">✓</span>
                             {% endif %}
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
@@ -72,7 +72,7 @@
                         <h3 class="font-bold text-lg mb-1">
                             {{ list.name }}
                             {% if list.is_ethereal %}
-                                <span class="text-sm">✨</span>
+                                <span class="text-sm">✓</span>
                             {% endif %}
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
@@ -115,7 +115,7 @@
                             <h3 class="font-bold text-lg mb-1">
                                 {{ list.name }}
                                 {% if list.is_ethereal %}
-                                    <span class="text-sm">✨</span>
+                                    <span class="text-sm">✓</span>
                                 {% endif %}
                             </h3>
                             {% if list.tags %}
@@ -222,7 +222,7 @@ function createFavoriteCard(sourceCard, listId) {
         ? `<img src="${thumbnail}" alt="${name}" class="w-full h-40 object-cover rounded mb-3">`
         : `<div class="w-full h-40 bg-gray-600 rounded mb-3 flex items-center justify-center"><span class="text-4xl">📋</span></div>`;
     
-    const etherealIcon = isEthereal ? '<span class="text-sm">✨</span>' : '';
+    const etherealIcon = isEthereal ? '<span class="text-sm">✓</span>' : '';
     
     const tagsHTML = tags.length > 0 
         ? `<div class="flex flex-wrap gap-1 mt-2">${tags.slice(0, 3).map(tag => 
