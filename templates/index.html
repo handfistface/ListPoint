@@ -35,9 +35,7 @@
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
                         {% if list.updated_at %}
-                        <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;">
-                            <script>document.write('Updated ' + formatUpdateTime('{{ list.updated_at.isoformat() }}'));</script>
-                        </p>
+                        <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;" data-updated-time="{{ list.updated_at.isoformat() }}"></p>
                         {% endif %}
                         {% if list.tags %}
                             <div class="flex flex-wrap gap-1 mt-2">
@@ -82,9 +80,7 @@
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
                         {% if list.updated_at %}
-                        <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;">
-                            <script>document.write('Updated ' + formatUpdateTime('{{ list.updated_at.isoformat() }}'));</script>
-                        </p>
+                        <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;" data-updated-time="{{ list.updated_at.isoformat() }}"></p>
                         {% endif %}
                         {% if list.tags %}
                             <div class="flex flex-wrap gap-1 mt-2">
@@ -129,9 +125,7 @@
                                 {% endif %}
                             </h3>
                             {% if list.updated_at %}
-                            <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;">
-                                <script>document.write('Updated ' + formatUpdateTime('{{ list.updated_at.isoformat() }}'));</script>
-                            </p>
+                            <p class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.7;" data-updated-time="{{ list.updated_at.isoformat() }}"></p>
                             {% endif %}
                             {% if list.tags %}
                                 <div class="flex flex-wrap gap-1 mt-2">
