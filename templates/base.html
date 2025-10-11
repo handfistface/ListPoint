@@ -142,8 +142,9 @@
     <div class="border-b" style="border-color: var(--border-color);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div class="flex items-center space-x-4">
-                <a href="{{ url_for('explore') }}" class="text-blue-500 hover:underline">
-                    Explore →
+                <a href="{{ url_for('explore') }}" class="card px-4 py-2 rounded hover:opacity-80 flex items-center space-x-2">
+                    <span>Explore</span>
+                    <span>➡️</span>
                 </a>
                 <a href="{{ url_for('create_list') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     + New List
