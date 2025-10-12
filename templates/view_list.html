@@ -523,24 +523,13 @@ async function addItem() {
     const text = itemInput.value.trim();
     if (!text) return;
     
-    const endpoint = (isEthereal && currentMode === 'edit') 
-        ? `/api/lists/${listId}/original/items`
-        : `/api/lists/${listId}/items`;
+    const addBtn = document.getElementById('add-item-btn');
+    const originalBtnText = addBtn.textContent;
     
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ text })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-        showModal('✓ Item added successfully', 'success');
-        itemInput.value = '';
+    try {
+        addBtn.disabled = true;
+        addBtn.textContent = '...';
+        addBtn.style.opacity = '0.6';
         
         const itemsList = document.getElementById('items-list');
         const emptyMessage = itemsList.querySelector('p');
@@ -548,6 +537,7 @@ async function addItem() {
             emptyMessage.remove();
         }
         
+        const tempId = 'temp_' + Date.now();
         const newItemDiv = document.createElement('div');
         newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
         newItemDiv.style.backgroundColor = 'var(--bg-primary)';
@@ -556,11 +546,10 @@ async function addItem() {
         newItemDiv.style.webkitUserSelect = 'none';
         newItemDiv.style.mozUserSelect = 'none';
         newItemDiv.style.msUserSelect = 'none';
-        newItemDiv.setAttribute('data-item-id', result.item_id);
+        newItemDiv.setAttribute('data-item-id', tempId);
         newItemDiv.setAttribute('data-item-text', text);
         newItemDiv.setAttribute('data-checked', 'false');
         newItemDiv.setAttribute('data-quantity', '1');
-        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
         
         const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
         const quantityHidden = isEthereal ? 'hidden' : '';
@@ -568,15 +557,14 @@ async function addItem() {
         newItemDiv.innerHTML = `
             <div class="flex items-center gap-3 flex-1">
                 <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
-                       onchange="toggleItemChecked('${result.item_id}')"
-                       onclick="event.stopPropagation()">
-                <span class="item-text">${text}</span>
+                       onclick="event.stopPropagation()" disabled>
+                <span class="item-text" style="opacity: 0.6;">${text}</span>
             </div>
             ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
-                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
+                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="event.stopPropagation()" data-action="decrease">
                     −
                 </button>
-                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', 1, event)" data-action="increase">
+                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="event.stopPropagation()" data-action="increase">
                     +
                 </button>
             </div>` : ''}
@@ -594,10 +582,63 @@ async function addItem() {
             itemsList.insertBefore(newItemDiv, items[insertIndex]);
         }
         
+        itemInput.value = '';
+        
+        const endpoint = (isEthereal && currentMode === 'edit') 
+            ? `/api/lists/${listId}/original/items`
+            : `/api/lists/${listId}/items`;
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ text })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            newItemDiv.setAttribute('data-item-id', result.item_id);
+            newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
+            const checkbox = newItemDiv.querySelector('.item-checkbox');
+            if (checkbox) {
+                checkbox.disabled = false;
+                checkbox.setAttribute('onchange', `toggleItemChecked('${result.item_id}')`);
+            }
+            const itemTextSpan = newItemDiv.querySelector('.item-text');
+            itemTextSpan.style.opacity = '1';
+            
+            const quantityBtns = newItemDiv.querySelectorAll('.quantity-btn');
+            quantityBtns.forEach((btn, idx) => {
+                if (idx === 0) {
+                    btn.setAttribute('onclick', `adjustQuantity('${result.item_id}', -1, event)`);
+                } else {
+                    btn.setAttribute('onclick', `adjustQuantity('${result.item_id}', 1, event)`);
+                }
+            });
+            
+            showModal('✓ Item added', 'success');
+        } else {
+            newItemDiv.remove();
+            if (itemsList.querySelectorAll('.item-row').length === 0) {
+                itemsList.innerHTML = '<p class="text-center py-8" style="color: var(--text-secondary);">No items yet. Start adding items above!</p>';
+            }
+            showModal(`✗ ${result.message}`, 'error');
+            itemInput.value = text;
+        }
+        
         itemInput.focus();
-    } else {
-        showModal(`✗ ${result.message}`, 'error');
+    } catch (error) {
+        console.error('Error adding item:', error);
+        showModal('✗ Failed to add item. Please try again.', 'error');
+        itemInput.value = text;
         itemInput.focus();
+    } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = originalBtnText;
+        addBtn.style.opacity = '1';
     }
 }
 
