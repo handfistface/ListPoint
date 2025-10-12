@@ -181,7 +181,8 @@
 
 <div id="undo-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeUndoModal(event)">
     <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in max-h-96" onclick="event.stopPropagation()">
-        <h3 class="text-xl font-bold mb-4">↶ Removed Items</h3>
+        <h3 class="text-xl font-bold mb-2">↶ Removed Items</h3>
+        <p class="text-sm mb-4" style="color: var(--text-secondary);">Click on any item to add items back to the list</p>
         <div id="undo-modal-list" class="space-y-2 overflow-y-auto max-h-64 mb-4">
         </div>
         <div class="flex justify-end">
@@ -927,6 +928,12 @@ function showUndoModal() {
         return;
     }
     
+    if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+    } else if (document.selection) {
+        document.selection.empty();
+    }
+    
     const modal = document.getElementById('undo-modal');
     const modalList = document.getElementById('undo-modal-list');
     
@@ -936,7 +943,6 @@ function showUndoModal() {
              onclick="restoreFromModal(${index})"
              data-undo-index="${index}">
             <span>${item.text}</span>
-            <span class="text-blue-600">+ Add Back</span>
         </div>
     `).reverse().join('');
     
