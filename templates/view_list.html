@@ -87,7 +87,7 @@
                     <button id="add-item-btn" onclick="addItem()" class="px-4 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                         Add
                     </button>
-                    <button id="undo-btn" onclick="undoDelete()" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 hidden">
+                    <button id="undo-btn" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 hidden">
                         ↶ Undo (<span id="undo-count">0</span>)
                     </button>
                 </div>
@@ -179,6 +179,22 @@
     </div>
 </div>
 
+<div id="undo-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeUndoModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in max-h-96" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">↶ Removed Items</h3>
+        <div id="undo-modal-list" class="space-y-2 overflow-y-auto max-h-64 mb-4">
+        </div>
+        <div class="flex justify-end">
+            <button 
+                onclick="closeUndoModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 <form id="delete-form" method="POST" action="{{ url_for('delete_list', list_id=current_list._id) }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
@@ -195,6 +211,31 @@ const isEthereal = {{ 'true' if current_list.is_ethereal else 'false' }};
 let undoStack = [];
 const MAX_UNDO = 10;
 let currentMode = 'checkOff';
+
+function loadUndoStack() {
+    const storageKey = `undoStack_${listId}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+        try {
+            undoStack = JSON.parse(stored);
+            updateUndoButton();
+        } catch (e) {
+            console.error('Failed to load undo stack:', e);
+            undoStack = [];
+        }
+    }
+}
+
+function saveUndoStack() {
+    const storageKey = `undoStack_${listId}`;
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(undoStack));
+    } catch (e) {
+        console.error('Failed to save undo stack:', e);
+    }
+}
+
+loadUndoStack();
 
 function toggleMode() {
     if (!isEthereal || !isOwner) return;
@@ -510,12 +551,64 @@ document.getElementById('edit-item-input').addEventListener('keypress', (e) => {
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        const modal = document.getElementById('edit-item-modal');
-        if (!modal.classList.contains('hidden')) {
+        const editModal = document.getElementById('edit-item-modal');
+        const undoModal = document.getElementById('undo-modal');
+        
+        if (!editModal.classList.contains('hidden')) {
             closeEditModal();
+        } else if (!undoModal.classList.contains('hidden')) {
+            closeUndoModal();
         }
     }
 });
+
+{% if is_owner or is_collaborator %}
+let undoButtonLongPressTimer = null;
+let undoButtonLongPressTriggered = false;
+
+const undoBtn = document.getElementById('undo-btn');
+
+undoBtn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showUndoModal();
+});
+
+undoBtn.addEventListener('touchstart', (e) => {
+    undoButtonLongPressTriggered = false;
+    
+    undoButtonLongPressTimer = setTimeout(() => {
+        undoButtonLongPressTriggered = true;
+        navigator.vibrate && navigator.vibrate(50);
+        showUndoModal();
+    }, 500);
+}, { passive: true });
+
+undoBtn.addEventListener('touchend', (e) => {
+    if (undoButtonLongPressTimer) {
+        clearTimeout(undoButtonLongPressTimer);
+        undoButtonLongPressTimer = null;
+    }
+    
+    if (undoButtonLongPressTriggered) {
+        e.preventDefault();
+        undoButtonLongPressTriggered = false;
+    }
+}, { passive: false });
+
+undoBtn.addEventListener('touchmove', (e) => {
+    if (undoButtonLongPressTimer) {
+        clearTimeout(undoButtonLongPressTimer);
+        undoButtonLongPressTimer = null;
+    }
+}, { passive: true });
+
+undoBtn.addEventListener('click', (e) => {
+    if (!undoButtonLongPressTriggered) {
+        undoDelete();
+    }
+    undoButtonLongPressTriggered = false;
+});
+{% endif %}
 
 setupItemEventListeners();
 
@@ -736,6 +829,8 @@ function updateUndoButton() {
     } else {
         undoBtn.classList.add('hidden');
     }
+    
+    saveUndoStack();
 }
 
 async function undoDelete() {
@@ -823,6 +918,138 @@ async function undoDelete() {
         } else {
             itemsList.insertBefore(newItemDiv, items[insertIndex]);
         }
+    }
+}
+
+function showUndoModal() {
+    if (undoStack.length === 0) {
+        showModal('✗ No items to restore', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('undo-modal');
+    const modalList = document.getElementById('undo-modal-list');
+    
+    modalList.innerHTML = undoStack.map((item, index) => `
+        <div class="flex items-center justify-between p-3 rounded cursor-pointer hover:bg-opacity-80 transition-colors"
+             style="background-color: var(--bg-primary);"
+             onclick="restoreFromModal(${index})"
+             data-undo-index="${index}">
+            <span>${item.text}</span>
+            <span class="text-blue-600">+ Add Back</span>
+        </div>
+    `).reverse().join('');
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeUndoModal(event) {
+    if (event && event.target.id !== 'undo-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('undo-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function restoreFromModal(index) {
+    const reversedIndex = undoStack.length - 1 - index;
+    const item = undoStack[reversedIndex];
+    
+    // Check if item already exists in the list
+    const existingItems = Array.from(document.querySelectorAll('.item-text'));
+    const itemExists = existingItems.some(el => el.textContent.toLowerCase() === item.text.toLowerCase());
+    
+    if (itemExists) {
+        showModal('✗ Item already exists in the list', 'error');
+        closeUndoModal();
+        return;
+    }
+    
+    undoStack.splice(reversedIndex, 1);
+    updateUndoButton();
+    
+    const endpoint = (isEthereal && currentMode === 'edit') 
+        ? `/api/lists/${listId}/original/items`
+        : `/api/lists/${listId}/items`;
+    
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ text: item.text })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        const itemsList = document.getElementById('items-list');
+        const emptyMessage = itemsList.querySelector('p');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        const newItemDiv = document.createElement('div');
+        newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
+        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
+        newItemDiv.style.cursor = 'pointer';
+        newItemDiv.style.userSelect = 'none';
+        newItemDiv.style.webkitUserSelect = 'none';
+        newItemDiv.style.mozUserSelect = 'none';
+        newItemDiv.style.msUserSelect = 'none';
+        newItemDiv.setAttribute('data-item-id', result.item_id);
+        newItemDiv.setAttribute('data-item-text', item.text);
+        newItemDiv.setAttribute('data-checked', 'false');
+        newItemDiv.setAttribute('data-quantity', '1');
+        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
+        
+        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
+        const quantityHidden = isEthereal ? 'hidden' : '';
+        
+        newItemDiv.innerHTML = `
+            <div class="flex items-center gap-3 flex-1">
+                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
+                       onchange="toggleItemChecked('${result.item_id}')"
+                       onclick="event.stopPropagation()">
+                <span class="item-text">${item.text}</span>
+            </div>
+            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
+                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
+                    −
+                </button>
+                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', 1, event)" data-action="increase">
+                    +
+                </button>
+            </div>` : ''}
+        `;
+        
+        const items = Array.from(itemsList.querySelectorAll('.item-row'));
+        const restoredItemText = item.text.toLowerCase();
+        const insertIndex = items.findIndex(existingItem => {
+            const itemText = existingItem.querySelector('.item-text').textContent;
+            return itemText.toLowerCase() > restoredItemText;
+        });
+        
+        if (insertIndex === -1) {
+            itemsList.appendChild(newItemDiv);
+        } else {
+            itemsList.insertBefore(newItemDiv, items[insertIndex]);
+        }
+        
+        showModal('✓ Item restored', 'success');
+        
+        if (undoStack.length === 0) {
+            closeUndoModal();
+        } else {
+            showUndoModal();
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+        closeUndoModal();
     }
 }
 
