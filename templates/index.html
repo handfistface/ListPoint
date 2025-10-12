@@ -32,6 +32,9 @@
                             {% if list.is_ethereal %}
                                 <span class="text-sm">✓</span>
                             {% endif %}
+                            {% if list.clone_count > 0 %}
+                                <span class="text-sm">🌿{{ list.clone_count }}</span>
+                            {% endif %}
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
                         {% if list.updated_at %}
@@ -76,6 +79,9 @@
                             {{ list.name }}
                             {% if list.is_ethereal %}
                                 <span class="text-sm">✓</span>
+                            {% endif %}
+                            {% if list.clone_count > 0 %}
+                                <span class="text-sm">🌿{{ list.clone_count }}</span>
                             {% endif %}
                         </h3>
                         <p class="text-sm" style="color: var(--text-secondary);">by @{{ list.owner_username }}</p>
@@ -122,6 +128,9 @@
                                 {{ list.name }}
                                 {% if list.is_ethereal %}
                                     <span class="text-sm">✓</span>
+                                {% endif %}
+                                {% if list.clone_count > 0 %}
+                                    <span class="text-sm">🌿{{ list.clone_count }}</span>
                                 {% endif %}
                             </h3>
                             {% if list.updated_at %}

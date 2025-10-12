@@ -120,6 +120,7 @@ function createListCard(list) {
            </div>`;
     
     const etherealIcon = list.is_ethereal ? '<span class="text-sm">✓</span>' : '';
+    const cloneIcon = list.clone_count > 0 ? `<span class="text-sm">🌿${list.clone_count}</span>` : '';
     
     const tags = list.tags && list.tags.length > 0
         ? `<div class="flex flex-wrap gap-1 mt-2">
@@ -140,6 +141,7 @@ function createListCard(list) {
             <h3 class="font-bold text-lg mb-1">
                 ${list.name}
                 ${etherealIcon}
+                ${cloneIcon}
             </h3>
             <p class="text-sm mb-2" style="color: var(--text-secondary);">by @${list.owner_username}</p>
             ${updatedTime}

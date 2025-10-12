@@ -95,16 +95,19 @@ def index():
         
         for lst in my_lists:
             lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
+            lst['clone_count'] = lst.get('clone_count', 0)
         
         for lst in favorited_lists:
             owner = db.get_user_by_id(str(lst['owner_id']))
             lst['owner_username'] = owner['username'] if owner else 'Unknown'
             lst['is_favorited'] = True
+            lst['clone_count'] = lst.get('clone_count', 0)
         
         for lst in collaborated_lists:
             owner = db.get_user_by_id(str(lst['owner_id']))
             lst['owner_username'] = owner['username'] if owner else 'Unknown'
             lst['is_favorited'] = db.is_favorited(current_user.id, str(lst['_id']))
+            lst['clone_count'] = lst.get('clone_count', 0)
         
         return render_template('index.html', 
                              my_lists=my_lists, 
@@ -290,6 +293,12 @@ def view_list(list_id):
     if current_user.is_authenticated:
         is_favorited = db.is_favorited(current_user.id, list_id)
     
+    parent_list = None
+    if list_doc.get('parent_id'):
+        parent_list = db.get_list_by_id(str(list_doc['parent_id']))
+    
+    clone_count = list_doc.get('clone_count', 0)
+    
     theme = current_user.preferences.get('theme', 'dark') if current_user.is_authenticated else 'dark'
     adsense_publisher_id = os.getenv('GOOGLE_ADSENSE_PUBLISHER_ID', '')
     
@@ -298,6 +307,8 @@ def view_list(list_id):
                          is_owner=is_owner,
                          is_collaborator=is_collaborator,
                          is_favorited=is_favorited,
+                         parent_list=parent_list,
+                         clone_count=clone_count,
                          theme=theme,
                          adsense_publisher_id=adsense_publisher_id)
 
@@ -361,6 +372,29 @@ def edit_list(list_id):
                          current_list=list_doc, 
                          collaborators=collaborators_info,
                          theme=current_user.preferences.get('theme', 'dark'))
+
+@app.route('/lists/<list_id>/clone', methods=['POST'])
+@login_required
+def clone_list(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc:
+        flash('List not found', 'error')
+        return redirect(url_for('index'))
+    
+    if not list_doc['is_public']:
+        is_owner = str(list_doc['owner_id']) == current_user.id
+        is_collaborator = db.is_collaborator(current_user.id, list_id)
+        if not is_owner and not is_collaborator:
+            flash('Cannot clone a private list', 'error')
+            return redirect(url_for('index'))
+    
+    cloned_list_id = db.clone_list(list_id, current_user.id)
+    if cloned_list_id:
+        flash('List cloned successfully!', 'success')
+        return redirect(url_for('view_list', list_id=str(cloned_list_id)))
+    else:
+        flash('Failed to clone list', 'error')
+        return redirect(url_for('view_list', list_id=list_id))
 
 @app.route('/lists/<list_id>/delete', methods=['POST'])
 @login_required
@@ -561,6 +595,30 @@ def explore():
                          search_query=search_query,
                          theme=theme)
 
+@app.route('/api/lists/<list_id>/children')
+def api_children(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc:
+        return jsonify({'error': 'List not found'}), 404
+    
+    is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc['is_public'] and not is_owner and not is_collaborator:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    children = db.get_children_lists(list_id)
+    result = []
+    for child in children:
+        if child.get('is_public') or (current_user.is_authenticated and (str(child['owner_id']) == current_user.id or db.is_collaborator(current_user.id, str(child['_id'])))):
+            owner = db.get_user_by_id(str(child['owner_id']))
+            result.append({
+                'id': str(child['_id']),
+                'name': child['name'],
+                'owner_username': owner['username'] if owner else 'Unknown'
+            })
+    return jsonify({'children': result})
+
 @app.route('/api/explore')
 def api_explore():
     search_query = request.args.get('q', '')
@@ -583,6 +641,7 @@ def api_explore():
             'owner_username': owner['username'] if owner else 'Unknown',
             'tags': lst.get('tags', []),
             'is_favorited': False,
+            'clone_count': lst.get('clone_count', 0),
             'updated_at': lst.get('updated_at').isoformat() if lst.get('updated_at') else None
         }
         

@@ -25,6 +25,21 @@
     </div>
     {% endif %}
     
+    {% if parent_list or clone_count > 0 %}
+    <div class="mb-4 flex gap-3 items-center">
+        {% if parent_list %}
+        <a href="{{ url_for('view_list', list_id=parent_list._id|string) }}" class="text-sm px-3 py-1 rounded card hover:opacity-80">
+            ↑ parent
+        </a>
+        {% endif %}
+        {% if clone_count > 0 %}
+        <button onclick="showChildrenModal()" class="text-sm px-3 py-1 rounded card hover:opacity-80">
+            Children {{ clone_count }}
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <div class="flex justify-between items-start mb-6">
         <div>
             <h1 class="text-3xl font-bold mb-2">
@@ -68,6 +83,11 @@
                     <span id="favorite-icon">{% if is_favorited %}⭐{% else %}☆{% endif %}</span>
                     <span id="favorite-text">{% if is_favorited %}Favorited{% else %}Favorite{% endif %}</span>
                 </button>
+            {% endif %}
+            {% if current_user.is_authenticated %}
+            <button onclick="cloneList()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Clone
+            </button>
             {% endif %}
         </div>
     </div>
@@ -196,7 +216,27 @@
     </div>
 </div>
 
+<div id="children-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeChildrenModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in max-h-96" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Cloned Lists</h3>
+        <div id="children-list" class="space-y-2 overflow-y-auto max-h-64 mb-4">
+        </div>
+        <div class="flex justify-end">
+            <button 
+                onclick="closeChildrenModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 <form id="delete-form" method="POST" action="{{ url_for('delete_list', list_id=current_list._id) }}" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<form id="clone-form" method="POST" action="{{ url_for('clone_list', list_id=current_list._id) }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 
@@ -1107,6 +1147,50 @@ function confirmDelete() {
     if (confirm('Are you sure you want to delete this list? This cannot be undone.')) {
         document.getElementById('delete-form').submit();
     }
+}
+
+function cloneList() {
+    if (confirm('Clone this list? A copy will be created and added to your lists.')) {
+        document.getElementById('clone-form').submit();
+    }
+}
+
+async function showChildrenModal() {
+    const modal = document.getElementById('children-modal');
+    const childrenList = document.getElementById('children-list');
+    
+    childrenList.innerHTML = '<p class="text-center" style="color: var(--text-secondary);">Loading...</p>';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    try {
+        const response = await fetch(`/api/lists/${listId}/children`);
+        const data = await response.json();
+        
+        if (data.children && data.children.length > 0) {
+            childrenList.innerHTML = data.children.map(child => `
+                <a href="/lists/${child.id}" class="block p-3 rounded card hover:opacity-80">
+                    <div class="font-semibold">${child.name}</div>
+                    <div class="text-sm" style="color: var(--text-secondary);">by @${child.owner_username}</div>
+                </a>
+            `).join('');
+        } else {
+            childrenList.innerHTML = '<p class="text-center" style="color: var(--text-secondary);">No cloned lists found</p>';
+        }
+    } catch (error) {
+        console.error('Error loading children:', error);
+        childrenList.innerHTML = '<p class="text-center text-red-500">Error loading cloned lists</p>';
+    }
+}
+
+function closeChildrenModal(event) {
+    if (event && event.target.id !== 'children-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('children-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 
 {% if not is_owner %}

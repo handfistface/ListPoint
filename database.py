@@ -1,6 +1,7 @@
 from pymongo import MongoClient, ASCENDING
 from bson.objectid import ObjectId
 from datetime import datetime
+from werkzeug.security import generate_password_hash
 import os
 
 class Database:
@@ -19,6 +20,7 @@ class Database:
         self.db.lists.create_index([('is_public', ASCENDING)])
         self.db.lists.create_index([('is_ethereal', ASCENDING)])
         self.db.lists.create_index([('tags', ASCENDING)])
+        self.db.lists.create_index([('parent_id', ASCENDING)])
         self.db.favorites.create_index([('user_id', ASCENDING)])
         self.db.favorites.create_index([('list_id', ASCENDING)])
         self.db.favorites.create_index([('user_id', ASCENDING), ('list_id', ASCENDING)], unique=True)
@@ -91,7 +93,7 @@ class Database:
     def get_list_by_id(self, list_id):
         return self.db.lists.find_one({'_id': ObjectId(list_id)})
     
-    def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None):
+    def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None, parent_id=None):
         items = items or []
         sorted_items = sorted(items, key=lambda x: x['text'].lower())
         
@@ -104,6 +106,8 @@ class Database:
             'tags': tags or [],
             'items': sorted_items,
             'collaborators': [],
+            'parent_id': ObjectId(parent_id) if parent_id else None,
+            'clone_count': 0,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -112,6 +116,13 @@ class Database:
             list_doc['original_items'] = sorted_items.copy()
         
         result = self.db.lists.insert_one(list_doc)
+        
+        if parent_id:
+            self.db.lists.update_one(
+                {'_id': ObjectId(parent_id)},
+                {'$inc': {'clone_count': 1}}
+            )
+        
         return result.inserted_id
     
     def update_list(self, list_id, **kwargs):
@@ -122,6 +133,44 @@ class Database:
         )
     
     def delete_list(self, list_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return
+        
+        parent_id = list_doc.get('parent_id')
+        if parent_id:
+            self.db.lists.update_one(
+                {'_id': parent_id},
+                {'$inc': {'clone_count': -1}}
+            )
+        
+        children = list(self.db.lists.find({'parent_id': ObjectId(list_id)}))
+        
+        orphan_list_id = None
+        for child in children:
+            if parent_id:
+                self.db.lists.update_one(
+                    {'_id': child['_id']},
+                    {'$set': {'parent_id': parent_id}}
+                )
+                if parent_id:
+                    self.db.lists.update_one(
+                        {'_id': parent_id},
+                        {'$inc': {'clone_count': 1}}
+                    )
+            else:
+                if orphan_list_id is None:
+                    orphan_list_id = self._create_orphan_list(list_doc)
+                self.db.lists.update_one(
+                    {'_id': child['_id']},
+                    {'$set': {'parent_id': orphan_list_id}}
+                )
+                if orphan_list_id:
+                    self.db.lists.update_one(
+                        {'_id': orphan_list_id},
+                        {'$inc': {'clone_count': 1}}
+                    )
+        
         self.db.lists.delete_one({'_id': ObjectId(list_id)})
         self.db.favorites.delete_many({'list_id': ObjectId(list_id)})
     
@@ -564,3 +613,105 @@ class Database:
             {'$pull': {'groups': group}}
         )
         return result.modified_count > 0
+    
+    def clone_list(self, list_id, new_owner_id):
+        original_list = self.get_list_by_id(list_id)
+        if not original_list:
+            return None
+        
+        items_copy = []
+        for item in original_list.get('items', []):
+            item_copy = {
+                '_id': ObjectId(),
+                'text': item['text'],
+                'quantity': item.get('quantity', 1),
+                'added_at': datetime.utcnow()
+            }
+            if original_list.get('is_ethereal'):
+                item_copy['checked'] = False
+            items_copy.append(item_copy)
+        
+        original_items_copy = []
+        if original_list.get('is_ethereal'):
+            for item in original_list.get('original_items', []):
+                original_items_copy.append({
+                    '_id': ObjectId(),
+                    'text': item['text'],
+                    'quantity': item.get('quantity', 1),
+                    'checked': False,
+                    'added_at': datetime.utcnow()
+                })
+        
+        cloned_list_id = self.create_list(
+            name=original_list['name'],
+            owner_id=new_owner_id,
+            thumbnail_url=original_list.get('thumbnail_url', ''),
+            is_public=True,
+            is_ethereal=original_list.get('is_ethereal', False),
+            tags=original_list.get('tags', []) if original_list.get('tags') else [],
+            items=items_copy,
+            parent_id=str(list_id)
+        )
+        
+        if original_list.get('is_ethereal') and original_items_copy:
+            self.db.lists.update_one(
+                {'_id': cloned_list_id},
+                {'$set': {'original_items': original_items_copy}}
+            )
+        
+        return cloned_list_id
+    
+    def get_children_lists(self, list_id):
+        return list(self.db.lists.find({'parent_id': ObjectId(list_id)}))
+    
+    def _create_orphan_list(self, deleted_list):
+        items_copy = []
+        for item in deleted_list.get('items', []):
+            item_copy = {
+                '_id': ObjectId(),
+                'text': item['text'],
+                'quantity': item.get('quantity', 1),
+                'added_at': datetime.utcnow()
+            }
+            if deleted_list.get('is_ethereal'):
+                item_copy['checked'] = item.get('checked', False)
+            items_copy.append(item_copy)
+        
+        original_items_copy = []
+        if deleted_list.get('is_ethereal'):
+            for item in deleted_list.get('original_items', []):
+                original_items_copy.append({
+                    '_id': ObjectId(),
+                    'text': item['text'],
+                    'quantity': item.get('quantity', 1),
+                    'checked': False,
+                    'added_at': datetime.utcnow()
+                })
+        
+        none_user = self.db.users.find_one({'username': 'None'})
+        if not none_user:
+            password_hash = generate_password_hash('none_user_no_login')
+            none_user_id = self.create_user('none@system.internal', 'None', password_hash)
+        else:
+            none_user_id = none_user['_id']
+        
+        orphan_list_doc = {
+            'name': deleted_list['name'],
+            'owner_id': none_user_id,
+            'thumbnail_url': deleted_list.get('thumbnail_url', ''),
+            'is_public': deleted_list.get('is_public', True),
+            'is_ethereal': deleted_list.get('is_ethereal', False),
+            'tags': deleted_list.get('tags', []),
+            'items': items_copy,
+            'collaborators': [],
+            'parent_id': None,
+            'clone_count': 0,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        
+        if deleted_list.get('is_ethereal') and original_items_copy:
+            orphan_list_doc['original_items'] = original_items_copy
+        
+        result = self.db.lists.insert_one(orphan_list_doc)
+        return result.inserted_id
