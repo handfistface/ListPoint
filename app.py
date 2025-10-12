@@ -311,6 +311,13 @@ def view_list(list_id):
         return redirect(url_for('index'))
     
     is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    
+    # Admins can manage "None"-owned orphan lists
+    if not is_owner and current_user.is_authenticated and current_user.is_admin:
+        owner = db.get_user_by_id(str(list_doc['owner_id']))
+        if owner and owner.get('username') == 'None':
+            is_owner = True
+    
     is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
     
     if not list_doc['is_public'] and not is_owner and not is_collaborator:
