@@ -55,6 +55,37 @@ def load_user(user_id):
         return User(user_dict)
     return None
 
+def can_manage_list(list_doc, user_id=None, check_collaborator=False):
+    """
+    Check if a user can manage a list.
+    Returns True if:
+    - User is the owner
+    - User is a collaborator (if check_collaborator=True)
+    - User is an admin and the list is owned by 'None' (orphan list)
+    """
+    if not list_doc:
+        return False
+    
+    if user_id is None and current_user.is_authenticated:
+        user_id = current_user.id
+    
+    if not user_id:
+        return False
+    
+    is_owner = str(list_doc['owner_id']) == user_id
+    if is_owner:
+        return True
+    
+    if check_collaborator and db.is_collaborator(user_id, str(list_doc['_id'])):
+        return True
+    
+    if current_user.is_authenticated and current_user.is_admin:
+        owner = db.get_user_by_id(str(list_doc['owner_id']))
+        if owner and owner.get('username') == 'None':
+            return True
+    
+    return False
+
 def validate_username_not_email(form, field):
     # Email regex pattern
     email_pattern = r'^[^@]+@[^@]+\.[^@]+$'
@@ -316,7 +347,7 @@ def view_list(list_id):
 @login_required
 def edit_list(list_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    if not can_manage_list(list_doc):
         flash('List not found or access denied', 'error')
         return redirect(url_for('index'))
     
@@ -400,7 +431,7 @@ def clone_list(list_id):
 @login_required
 def delete_list(list_id):
     list_doc = db.get_list_by_id(list_id)
-    if list_doc and str(list_doc['owner_id']) == current_user.id:
+    if can_manage_list(list_doc):
         db.delete_list(list_id)
         flash('List deleted successfully', 'success')
     else:
@@ -412,10 +443,8 @@ def delete_list(list_id):
 @login_required
 def add_item(list_id):
     list_doc = db.get_list_by_id(list_id)
-    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
-    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
     
-    if not list_doc or (not is_owner and not is_collaborator):
+    if not can_manage_list(list_doc, check_collaborator=True):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     data = request.get_json()
@@ -435,10 +464,8 @@ def add_item(list_id):
 @login_required
 def delete_item(list_id, item_id):
     list_doc = db.get_list_by_id(list_id)
-    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
-    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
     
-    if not list_doc or (not is_owner and not is_collaborator):
+    if not can_manage_list(list_doc, check_collaborator=True):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     db.remove_item_from_list(list_id, item_id)
@@ -499,10 +526,8 @@ def adjust_quantity(list_id, item_id):
 @login_required
 def update_item(list_id, item_id):
     list_doc = db.get_list_by_id(list_id)
-    is_owner = list_doc and str(list_doc['owner_id']) == current_user.id
-    is_collaborator = list_doc and db.is_collaborator(current_user.id, list_id)
     
-    if not list_doc or (not is_owner and not is_collaborator):
+    if not can_manage_list(list_doc, check_collaborator=True):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     data = request.get_json()
@@ -522,7 +547,7 @@ def update_item(list_id, item_id):
 @login_required
 def update_item_in_original(list_id, item_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    if not can_manage_list(list_doc):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     data = request.get_json()
@@ -542,7 +567,7 @@ def update_item_in_original(list_id, item_id):
 @login_required
 def add_item_to_original(list_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    if not can_manage_list(list_doc):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     data = request.get_json()
@@ -562,7 +587,7 @@ def add_item_to_original(list_id):
 @login_required
 def delete_item_from_original(list_id, item_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    if not can_manage_list(list_doc):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     success = db.remove_item_from_original(list_id, item_id)
@@ -835,7 +860,7 @@ def search_users():
 def add_collaborator(list_id):
     try:
         list_doc = db.get_list_by_id(list_id)
-        if not list_doc or str(list_doc['owner_id']) != current_user.id:
+        if not can_manage_list(list_doc):
             return jsonify({'success': False, 'message': 'Access denied'}), 403
         
         data = request.get_json()
@@ -864,7 +889,7 @@ def add_collaborator(list_id):
 @csrf.exempt
 def remove_collaborator(list_id, user_id):
     list_doc = db.get_list_by_id(list_id)
-    if not list_doc or str(list_doc['owner_id']) != current_user.id:
+    if not can_manage_list(list_doc):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
     
     success, message = db.remove_collaborator(list_id, user_id)
