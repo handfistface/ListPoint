@@ -23,7 +23,7 @@ The application features a clean, minimalistic design with a responsive interfac
 
 ### Feature Specifications
 - **User Accounts**: Registration, login, session management.
-- **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection.
+- **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection. Admins can also manage orphaned lists (lists owned by "None" user) created when parent lists are deleted.
 - **List Creation**: Name, thumbnail, tags. All lists are public by default (as of October 11, 2025).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
 - **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo.
@@ -31,6 +31,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Last Updated Time Display**: All list cards (on index and explore pages) display the last update time in a user-friendly format: relative time for recent updates (e.g., "2h ago", "5m ago") and absolute date/time (MM/DD/YYYY HH:MM) for updates older than 7 days. The timestamp updates automatically when items are added, removed, quantity is adjusted, or the list is edited (implemented October 11, 2025).
 - **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
 - **Favorites**: Mark/unmark lists as favorites for quick access.
+- **List Cloning**: Users can clone any accessible list to create their own copy with all items. Cloned lists track their parent (original) list and display genealogy information. Clone count shown with 🌿 emoji on list cards. Parents display links to their children with owner information in a modal.
 - **Theming**: Dark/Light mode toggle with persistence.
 - **Image Uploads**: Interactive cropping, compression, aspect ratio control (160/300).
 - **Footer Pages**: About Us page describing the platform's mission, features, and solo developer background. Contact Us page with email contact information (kirschnerjohn10@gmail.com).
@@ -49,6 +50,8 @@ The application features a clean, minimalistic design with a responsive interfac
 - CSRF protection is enabled on all forms.
 - MongoDB indexes are used for performance on frequently queried fields.
 - **List Visibility**: All lists are enforced as public. The visibility UI control is hidden from users, and backend code ensures `is_public=True` for all list creation and editing operations. This was implemented on October 11, 2025 to simplify the platform and promote list sharing.
+- **List Cloning & Genealogy**: Lists track parent-child relationships via `parent_id` and `clone_count` fields. When a parent list is deleted, children are reassigned to their grandparent. If no grandparent exists, an orphan copy owned by "None" user is created to preserve genealogy. Admins have special permissions to manage orphaned lists (implemented October 12, 2025).
+- **Permission System**: Custom `can_manage_list()` helper function checks if a user can manage a list based on ownership, collaboration status, or admin privileges for orphaned lists. This ensures admins can maintain orphaned lists while regular users cannot access them.
 
 ## External Dependencies
 - **Database**: MongoDB (remote instance via MongoDB Atlas)
