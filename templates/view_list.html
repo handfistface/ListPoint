@@ -40,29 +40,58 @@
     </div>
     {% endif %}
     
-    <div class="flex justify-between items-start mb-6">
-        <div>
-            <h1 class="text-3xl font-bold mb-2">
+    <div class="mb-6">
+        <div class="flex items-start gap-3 mb-2">
+            <h1 class="text-3xl font-bold flex-1">
                 {{ current_list.name }}
                 {% if current_list.is_ethereal %}
                     <span class="text-2xl">✓</span>
                 {% endif %}
             </h1>
-            {% if current_list.tags %}
-                <div class="flex flex-wrap gap-2 mb-2">
-                    {% for tag in current_list.tags %}
-                        <span class="text-sm px-3 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
-                            #{{ tag }}
-                        </span>
-                    {% endfor %}
+            
+            <div class="relative" id="list-menu-container">
+                <button onclick="toggleListMenu()" class="p-2 rounded card hover:opacity-80" id="list-menu-btn" aria-label="List actions menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                
+                <div id="list-menu-dropdown" class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg card hidden z-50">
+                    <div class="py-1">
+                        {% if is_owner %}
+                        <a href="{{ url_for('edit_list', list_id=current_list._id) }}" class="block px-4 py-2 hover:opacity-80 transition-colors" style="color: var(--text-primary);">
+                            ✏️ Edit List
+                        </a>
+                        <button onclick="confirmDelete()" class="w-full text-left px-4 py-2 hover:opacity-80 transition-colors text-red-500">
+                            🗑️ Delete
+                        </button>
+                        {% endif %}
+                        {% if current_user.is_authenticated %}
+                        <button onclick="cloneList()" class="w-full text-left px-4 py-2 hover:opacity-80 transition-colors" style="color: var(--text-primary);">
+                            📋 Clone
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
-            {% endif %}
-            {% if not is_owner %}
-                <p class="text-sm" style="color: var(--text-secondary);">by @{{ current_list.owner_username }}</p>
-            {% endif %}
+            </div>
         </div>
         
-        <div class="flex items-center space-x-2 flex-wrap gap-2">
+        {% if current_list.tags %}
+            <div class="flex flex-wrap gap-2 mb-2">
+                {% for tag in current_list.tags %}
+                    <span class="text-sm px-3 py-1 rounded" style="background-color: var(--border-color); color: var(--text-secondary);">
+                        #{{ tag }}
+                    </span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if not is_owner %}
+            <p class="text-sm" style="color: var(--text-secondary);">by @{{ current_list.owner_username }}</p>
+        {% endif %}
+        
+        <div class="flex items-center space-x-2 flex-wrap gap-2 mt-4">
             {% if is_owner %}
                 {% if current_list.is_ethereal %}
                     <button id="mode-toggle-btn" onclick="toggleMode()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
@@ -72,22 +101,11 @@
                         <span id="restore-text">🔄 Uncheck All</span>
                     </button>
                 {% endif %}
-                <a href="{{ url_for('edit_list', list_id=current_list._id) }}" class="card px-4 py-2 rounded hover:opacity-80">
-                    Edit List
-                </a>
-                <button onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                    Delete
-                </button>
             {% else %}
                 <button onclick="toggleFavorite()" id="favorite-btn" class="{% if is_favorited %}bg-yellow-600{% else %}card{% endif %} px-4 py-2 rounded hover:opacity-80">
                     <span id="favorite-icon">{% if is_favorited %}⭐{% else %}☆{% endif %}</span>
                     <span id="favorite-text">{% if is_favorited %}Favorited{% else %}Favorite{% endif %}</span>
                 </button>
-            {% endif %}
-            {% if current_user.is_authenticated %}
-            <button onclick="cloneList()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Clone
-            </button>
             {% endif %}
         </div>
     </div>
@@ -1246,5 +1264,19 @@ function showModal(message, type) {
         notification.classList.add('hidden');
     }, duration);
 }
+
+function toggleListMenu() {
+    const dropdown = document.getElementById('list-menu-dropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+document.addEventListener('click', (e) => {
+    const menuContainer = document.getElementById('list-menu-container');
+    const dropdown = document.getElementById('list-menu-dropdown');
+    
+    if (menuContainer && !menuContainer.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
 </script>
 {% endblock %}
