@@ -94,15 +94,16 @@
 
     {% if is_owner or is_collaborator %}
         <div class="mb-6" id="add-item-section">
+            <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mb-2" style="position: relative; z-index: 1;"></div>
             <div class="relative">
-                <input 
-                    type="text" 
+                <textarea 
                     id="item-input" 
                     placeholder="Type to add item..." 
-                    class="w-full p-3 rounded border pr-44"
-                    style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+                    class="w-full p-3 rounded border pr-44 resize-none overflow-hidden"
+                    style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary); min-height: 48px;"
                     autocomplete="off"
-                >
+                    rows="1"
+                ></textarea>
                 <div class="absolute right-2 top-2 flex gap-2">
                     <button id="add-item-btn" onclick="addItem()" class="px-4 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                         Add
@@ -112,7 +113,6 @@
                     </button>
                 </div>
             </div>
-            <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mt-2" style="position: relative; z-index: 1;"></div>
             <div id="inline-notification" class="w-full hidden mt-2 p-3 rounded text-white text-center"></div>
         </div>
     {% endif %}
@@ -339,7 +339,14 @@ if (isEthereal && isOwner) {
 const itemInput = document.getElementById('item-input');
 const autocomplete = document.getElementById('autocomplete');
 
+function autoResizeTextarea() {
+    itemInput.style.height = 'auto';
+    itemInput.style.height = itemInput.scrollHeight + 'px';
+}
+
 itemInput.addEventListener('input', async (e) => {
+    autoResizeTextarea();
+    
     const query = e.target.value.trim();
     
     if (query.length < 2) {
@@ -375,6 +382,7 @@ document.addEventListener('click', (e) => {
 
 function selectSuggestion(text) {
     itemInput.value = text;
+    autoResizeTextarea();
     autocomplete.classList.add('hidden');
     addItem();
 }
@@ -717,6 +725,7 @@ async function addItem() {
         }
         
         itemInput.value = '';
+        autoResizeTextarea();
         
         const endpoint = (isEthereal && currentMode === 'edit') 
             ? `/api/lists/${listId}/original/items`
