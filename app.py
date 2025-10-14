@@ -713,6 +713,31 @@ def api_children(list_id):
             })
     return jsonify({'children': result})
 
+@app.route('/api/lists/<list_id>')
+def api_get_list(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc:
+        return jsonify({'success': False, 'error': 'List not found'}), 404
+    
+    is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc['is_public'] and not is_owner and not is_collaborator:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    items = list_doc.get('items', [])
+    items_result = []
+    for item in items:
+        items_result.append({
+            '_id': str(item['_id']),
+            'text': item.get('text', ''),
+            'checked': item.get('checked', False),
+            'quantity': item.get('quantity', 1),
+            'section': item.get('section')
+        })
+    
+    return jsonify({'success': True, 'items': items_result})
+
 @app.route('/api/explore')
 def api_explore():
     search_query = request.args.get('q', '')
