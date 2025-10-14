@@ -2,6 +2,7 @@
 
 ## Recent Changes
 - **October 14, 2025**: 
+  - **Added "Move to Section" feature**: Users can now move items between sections or to loose items using the right-click/long-press context menu. The modal displays all available sections (excluding the current section) and an option to remove the item from its section (move to loose items). Items can be moved from any section to another, or from loose items to a section.
   - Fixed undo functionality bug where deleted items were not being restored to the list without a page reload. Created missing `/api/lists/<list_id>` JSON API endpoint that returns list data with items.
   - Fixed context menu bug where right-click/long-press dialog was appearing during regular list interactions. Added event listener guard to prevent duplicate listeners from being attached when list is rebuilt.
   - Fixed edit item modal lingering after item edit. Changed implementation to fetch updated list data and rebuild the list asynchronously, ensuring modal closes properly and items are correctly ordered within sections without page reload.
@@ -36,8 +37,8 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection. Admins can also manage orphaned lists (lists owned by "None" user) created when parent lists are deleted.
 - **List Creation**: Name, thumbnail, tags. All lists are public by default (as of October 11, 2025).
 - **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
-- **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo, organize into sections.
-- **Section Operations**: Create sections from items, rename sections, delete sections (with confirmation), add items directly to sections with autocomplete support.
+- **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo, organize into sections, move items between sections.
+- **Section Operations**: Create sections from items, rename sections, delete sections (with confirmation), add items directly to sections with autocomplete support, move items to/from sections via context menu.
 - **Discovery**: Browse, search, filter lists by tags. Infinite scroll implementation loads 10 lists at a time, sorted by most recently updated, with automatic preloading when user scrolls through 5 items (implemented October 11, 2025). Last updated time is displayed on all list cards showing when the list was last modified.
 - **Last Updated Time Display**: All list cards (on index and explore pages) display the last update time in a user-friendly format: relative time for recent updates (e.g., "2h ago", "5m ago") and absolute date/time (MM/DD/YYYY HH:MM) for updates older than 7 days. The timestamp updates automatically when items are added, removed, quantity is adjusted, or the list is edited (implemented October 11, 2025).
 - **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
@@ -54,7 +55,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **List Sections Storage**: Sections are stored as a field (`section`) on each item rather than as separate entities. Items with a `section` field are grouped and displayed together with visual distinction (striped pattern). Loose items (section=null) appear at the bottom with a horizontal separator.
 - Image cropping uses a canvas-based interface, maintaining a 160px height / 300px width aspect ratio, with touch and mouse event support.
 - Autocomplete cache tracks user's item history for suggestions. When items are edited, the old autocomplete entry is replaced with the new text (not duplicated).
-- Context menus appear on right-click (desktop) or long-press 500ms (mobile) with haptic feedback. Item context menu offers "Copy Text", "Edit Item", and "Create Section" options. Section headers have their own context menu offering "Rename Section" and "Delete Section" options.
+- Context menus appear on right-click (desktop) or long-press 500ms (mobile) with haptic feedback. Item context menu offers "Copy Text", "Edit Item", "Create Section", and "Move to Section" options. The "Move to Section" feature allows moving items between sections or to loose items via a modal that shows all available sections. Section headers have their own context menu offering "Rename Section" and "Delete Section" options.
 - Context menu automatically positions itself to stay within viewport boundaries and matches the site's theme.
 - Copy functionality uses Clipboard API with fallback for older browsers.
 - Edit modal is a custom themed component matching the site's dark/light theme with keyboard shortcuts (Enter to save, Escape to cancel).
