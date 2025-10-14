@@ -3,6 +3,20 @@
 {% block title %}{{ current_list.name }} - List Point{% endblock %}
 {% block description %}View and manage {{ current_list.name }} on List Point. {% if current_list.tags %}Tags: {{ current_list.tags|join(', ') }}.{% endif %} {% if current_list.is_ethereal %}Check list with restore functionality.{% endif %}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .section-item-odd {
+        background-color: var(--bg-primary);
+    }
+    .section-item-even {
+        background-color: var(--bg-secondary);
+    }
+    .section-header {
+        border-bottom: 2px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto">
     {% if not current_user.is_authenticated or not current_user.subscription.get('is_ad_free', False) %}
@@ -136,32 +150,90 @@
     {% endif %}
 
     <div class="card p-6 rounded-lg">
-        <div id="items-list" class="space-y-2">
+        <div id="items-list">
             {% if current_list['items'] %}
+                {% set sections = {} %}
+                {% set loose_items = [] %}
                 {% for item in current_list['items'] %}
-                    <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
-                        <div class="flex items-center gap-3 flex-1">
-                            <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
-                                   onchange="toggleItemChecked('{{ item._id }}')" 
-                                   {% if item.get('checked') %}checked{% endif %}
-                                   onclick="event.stopPropagation()">
-                            <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
-                            {% if item.get('quantity', 1) > 1 %}
-                                <span class="text-sm" style="color: var(--text-secondary);">x{{ item.get('quantity', 1) }}</span>
+                    {% if item.get('section') %}
+                        {% if item.section not in sections %}
+                            {% set _ = sections.update({item.section: []}) %}
+                        {% endif %}
+                        {% set _ = sections[item.section].append(item) %}
+                    {% else %}
+                        {% set _ = loose_items.append(item) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% for section_name in sections.keys()|sort %}
+                    <div class="section-group mb-4" data-section-name="{{ section_name }}">
+                        <div class="section-header flex items-center justify-between p-3 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-section-name="{{ section_name }}">
+                            <span>{{ section_name }}</span>
+                            {% if is_owner or is_collaborator %}
+                                <button onclick="showSectionAddModal('{{ section_name }}', event)" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                                    ➕
+                                </button>
                             {% endif %}
                         </div>
-                        {% if is_owner or is_collaborator %}
-                            <div class="flex items-center gap-2">
-                                <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} {% if item.get('quantity', 1) <= 1 %}invisible{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', -1, event)" data-action="decrease">
-                                    −
-                                </button>
-                                <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', 1, event)" data-action="increase">
-                                    +
-                                </button>
-                            </div>
-                        {% endif %}
+                        <div class="section-items">
+                            {% for item in sections[section_name] %}
+                                <div class="flex items-center justify-between p-3 item-row {% if item.get('checked') %}opacity-50{% endif %} {% if loop.index % 2 == 0 %}section-item-even{% else %}section-item-odd{% endif %}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" data-section="{{ item.section }}" onclick="deleteItemByRow('{{ item._id }}', event)">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
+                                               onchange="toggleItemChecked('{{ item._id }}')" 
+                                               {% if item.get('checked') %}checked{% endif %}
+                                               onclick="event.stopPropagation()">
+                                        <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
+                                        {% if item.get('quantity', 1) > 1 %}
+                                            <span class="text-sm" style="color: var(--text-secondary);">x{{ item.get('quantity', 1) }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if is_owner or is_collaborator %}
+                                        <div class="flex items-center gap-2">
+                                            <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} {% if item.get('quantity', 1) <= 1 %}invisible{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', -1, event)" data-action="decrease">
+                                                −
+                                            </button>
+                                            <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', 1, event)" data-action="increase">
+                                                +
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% endfor %}
+                
+                {% if loose_items %}
+                    <div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">
+                        <div class="space-y-2">
+                            {% for item in loose_items %}
+                                <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
+                                               onchange="toggleItemChecked('{{ item._id }}')" 
+                                               {% if item.get('checked') %}checked{% endif %}
+                                               onclick="event.stopPropagation()">
+                                        <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
+                                        {% if item.get('quantity', 1) > 1 %}
+                                            <span class="text-sm" style="color: var(--text-secondary);">x{{ item.get('quantity', 1) }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if is_owner or is_collaborator %}
+                                        <div class="flex items-center gap-2">
+                                            <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} {% if item.get('quantity', 1) <= 1 %}invisible{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', -1, event)" data-action="decrease">
+                                                −
+                                            </button>
+                                            <button class="quantity-btn {% if current_list.is_ethereal %}hidden{% endif %} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('{{ item._id }}', 1, event)" data-action="increase">
+                                                +
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
             {% else %}
                 <p class="text-center py-8" style="color: var(--text-secondary);">
                     No items yet. {% if is_owner or is_collaborator %}Start adding items above!{% endif %}
@@ -172,7 +244,7 @@
 </div>
 
 <div id="context-menu" class="fixed hidden card rounded-lg shadow-lg z-50" style="min-width: 160px;">
-    <div class="py-1">
+    <div class="py-1" id="item-context-menu">
         <button 
             onclick="copyItemText()" 
             class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
@@ -187,6 +259,32 @@
         >
             ✏️ Edit Item
         </button>
+        {% if is_owner or is_collaborator %}
+        <button 
+            onclick="createSectionFromItem()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            📁 Create Section
+        </button>
+        {% endif %}
+    </div>
+    <div class="py-1 hidden" id="section-context-menu">
+        {% if is_owner or is_collaborator %}
+        <button 
+            onclick="renameSectionFromMenu()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            ✏️ Rename Section
+        </button>
+        <button 
+            onclick="deleteSectionFromMenu()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors text-red-500"
+        >
+            🗑️ Delete Section
+        </button>
+        {% endif %}
     </div>
 </div>
 
@@ -257,6 +355,109 @@
 <form id="clone-form" method="POST" action="{{ url_for('clone_list', list_id=current_list._id) }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
+
+<div id="create-section-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeCreateSectionModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Create Section</h3>
+        <input 
+            type="text" 
+            id="section-name-input" 
+            class="w-full p-3 rounded border mb-4"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+            placeholder="Enter section name..."
+        >
+        <div class="flex justify-end gap-3">
+            <button 
+                onclick="closeCreateSectionModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
+            </button>
+            <button 
+                onclick="saveNewSection()" 
+                class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+                Create
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="rename-section-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeRenameSectionModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Rename Section</h3>
+        <input 
+            type="text" 
+            id="rename-section-input" 
+            class="w-full p-3 rounded border mb-4"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+            placeholder="Enter new section name..."
+        >
+        <div class="flex justify-end gap-3">
+            <button 
+                onclick="closeRenameSectionModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
+            </button>
+            <button 
+                onclick="saveRenamedSection()" 
+                class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+                Save
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="delete-section-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeDeleteSectionModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Delete Section</h3>
+        <p class="mb-4" style="color: var(--text-secondary);">Are you sure you want to delete this section and all items within it? This action cannot be undone.</p>
+        <div class="flex justify-end gap-3">
+            <button 
+                onclick="closeDeleteSectionModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
+            </button>
+            <button 
+                onclick="confirmDeleteSection()" 
+                class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+            >
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="section-add-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeSectionAddModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Add Item to <span id="section-add-title"></span></h3>
+        <div id="section-autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mb-2" style="position: relative; z-index: 1;"></div>
+        <input 
+            type="text" 
+            id="section-item-input" 
+            class="w-full p-3 rounded border mb-4"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
+            placeholder="Enter item text..."
+        >
+        <div class="flex justify-end gap-3">
+            <button 
+                onclick="closeSectionAddModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
+            </button>
+            <button 
+                onclick="addItemToSection()" 
+                class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+                Add
+            </button>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
@@ -410,12 +611,20 @@ let longPressTriggered = false;
 let contextMenuItemId = null;
 let contextMenuItemText = null;
 
+let contextMenuSectionName = null;
+
 function setupItemEventListeners() {
     const itemsList = document.getElementById('items-list');
     
     itemsList.addEventListener('contextmenu', (e) => {
+        const sectionHeader = e.target.closest('.section-header');
         const itemRow = e.target.closest('.item-row');
-        if (itemRow) {
+        
+        if (sectionHeader && (isOwner || isCollaborator)) {
+            e.preventDefault();
+            const sectionName = sectionHeader.getAttribute('data-section-name');
+            showSectionContextMenu(e.clientX, e.clientY, sectionName);
+        } else if (itemRow) {
             e.preventDefault();
             const itemId = itemRow.getAttribute('data-item-id');
             const currentText = itemRow.getAttribute('data-item-text');
@@ -424,8 +633,20 @@ function setupItemEventListeners() {
     });
     
     itemsList.addEventListener('touchstart', (e) => {
+        const sectionHeader = e.target.closest('.section-header');
         const itemRow = e.target.closest('.item-row');
-        if (itemRow) {
+        
+        if (sectionHeader && (isOwner || isCollaborator)) {
+            longPressTriggered = false;
+            const sectionName = sectionHeader.getAttribute('data-section-name');
+            
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                navigator.vibrate && navigator.vibrate(50);
+                const touch = e.touches[0];
+                showSectionContextMenu(touch.clientX, touch.clientY, sectionName);
+            }, 500);
+        } else if (itemRow) {
             longPressTriggered = false;
             const itemId = itemRow.getAttribute('data-item-id');
             const currentText = itemRow.getAttribute('data-item-text');
@@ -457,6 +678,37 @@ function setupItemEventListeners() {
 function showContextMenu(x, y, itemId, itemText) {
     contextMenuItemId = itemId;
     contextMenuItemText = itemText;
+    contextMenuSectionName = null;
+    
+    const itemContextMenu = document.getElementById('item-context-menu');
+    const sectionContextMenu = document.getElementById('section-context-menu');
+    itemContextMenu.classList.remove('hidden');
+    sectionContextMenu.classList.add('hidden');
+    
+    const contextMenu = document.getElementById('context-menu');
+    contextMenu.classList.remove('hidden');
+    
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    
+    const menuRect = contextMenu.getBoundingClientRect();
+    if (menuRect.right > window.innerWidth) {
+        contextMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+    }
+    if (menuRect.bottom > window.innerHeight) {
+        contextMenu.style.top = `${window.innerHeight - menuRect.height - 10}px`;
+    }
+}
+
+function showSectionContextMenu(x, y, sectionName) {
+    contextMenuSectionName = sectionName;
+    contextMenuItemId = null;
+    contextMenuItemText = null;
+    
+    const itemContextMenu = document.getElementById('item-context-menu');
+    const sectionContextMenu = document.getElementById('section-context-menu');
+    itemContextMenu.classList.add('hidden');
+    sectionContextMenu.classList.remove('hidden');
     
     const contextMenu = document.getElementById('context-menu');
     contextMenu.classList.remove('hidden');
@@ -478,6 +730,7 @@ function hideContextMenu() {
     contextMenu.classList.add('hidden');
     contextMenuItemId = null;
     contextMenuItemText = null;
+    contextMenuSectionName = null;
     longPressTriggered = false;
 }
 
@@ -1269,6 +1522,295 @@ function toggleListMenu() {
     const dropdown = document.getElementById('list-menu-dropdown');
     dropdown.classList.toggle('hidden');
 }
+
+function createSectionFromItem() {
+    if (!contextMenuItemId || !contextMenuItemText) return;
+    hideContextMenu();
+    
+    const modal = document.getElementById('create-section-modal');
+    const input = document.getElementById('section-name-input');
+    
+    input.value = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    setTimeout(() => {
+        input.focus();
+    }, 100);
+}
+
+function closeCreateSectionModal(event) {
+    if (event && event.target.id !== 'create-section-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('create-section-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function saveNewSection() {
+    const input = document.getElementById('section-name-input');
+    const sectionName = input.value.trim();
+    
+    if (!sectionName || !contextMenuItemId) {
+        closeCreateSectionModal();
+        return;
+    }
+    
+    const response = await fetch(`/api/lists/${listId}/sections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            item_id: contextMenuItemId,
+            section_name: sectionName
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Section created successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    closeCreateSectionModal();
+}
+
+function renameSectionFromMenu() {
+    if (!contextMenuSectionName) return;
+    hideContextMenu();
+    
+    const modal = document.getElementById('rename-section-modal');
+    const input = document.getElementById('rename-section-input');
+    
+    input.value = contextMenuSectionName;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 100);
+}
+
+function closeRenameSectionModal(event) {
+    if (event && event.target.id !== 'rename-section-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('rename-section-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function saveRenamedSection() {
+    const input = document.getElementById('rename-section-input');
+    const newSectionName = input.value.trim();
+    
+    if (!newSectionName || !contextMenuSectionName || newSectionName === contextMenuSectionName) {
+        closeRenameSectionModal();
+        return;
+    }
+    
+    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(contextMenuSectionName)}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ new_section_name: newSectionName })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Section renamed successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    closeRenameSectionModal();
+}
+
+function deleteSectionFromMenu() {
+    if (!contextMenuSectionName) return;
+    hideContextMenu();
+    
+    const modal = document.getElementById('delete-section-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeDeleteSectionModal(event) {
+    if (event && event.target.id !== 'delete-section-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('delete-section-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function confirmDeleteSection() {
+    if (!contextMenuSectionName) {
+        closeDeleteSectionModal();
+        return;
+    }
+    
+    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(contextMenuSectionName)}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Section deleted successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    closeDeleteSectionModal();
+}
+
+let currentSectionForAdd = null;
+
+function showSectionAddModal(sectionName, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    currentSectionForAdd = sectionName;
+    
+    const modal = document.getElementById('section-add-item-modal');
+    const input = document.getElementById('section-item-input');
+    const title = document.getElementById('section-add-title');
+    
+    title.textContent = sectionName;
+    input.value = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    setTimeout(() => {
+        input.focus();
+    }, 100);
+}
+
+function closeSectionAddModal(event) {
+    if (event && event.target.id !== 'section-add-item-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('section-add-item-modal');
+    const autocomplete = document.getElementById('section-autocomplete');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    autocomplete.classList.add('hidden');
+    currentSectionForAdd = null;
+}
+
+async function addItemToSection() {
+    const input = document.getElementById('section-item-input');
+    const itemText = input.value.trim();
+    
+    if (!itemText || !currentSectionForAdd) {
+        closeSectionAddModal();
+        return;
+    }
+    
+    const response = await fetch(`/api/lists/${listId}/items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            text: itemText,
+            section: currentSectionForAdd
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Item added successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    closeSectionAddModal();
+}
+
+const sectionItemInput = document.getElementById('section-item-input');
+const sectionAutocomplete = document.getElementById('section-autocomplete');
+
+if (sectionItemInput && sectionAutocomplete) {
+    sectionItemInput.addEventListener('input', async (e) => {
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+            sectionAutocomplete.classList.add('hidden');
+            return;
+        }
+        
+        const response = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
+        const suggestions = await response.json();
+        
+        if (suggestions.length > 0) {
+            sectionAutocomplete.innerHTML = suggestions.map(s => 
+                `<div class="p-2 hover:bg-opacity-80 cursor-pointer" style="background-color: var(--bg-primary);" onclick="selectSectionSuggestion('${s}')">${s}</div>`
+            ).join('');
+            sectionAutocomplete.classList.remove('hidden');
+        } else {
+            sectionAutocomplete.classList.add('hidden');
+        }
+    });
+    
+    sectionItemInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addItemToSection();
+        }
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!sectionAutocomplete.contains(e.target) && e.target !== sectionItemInput) {
+            sectionAutocomplete.classList.add('hidden');
+        }
+    });
+}
+
+function selectSectionSuggestion(text) {
+    const input = document.getElementById('section-item-input');
+    input.value = text;
+    document.getElementById('section-autocomplete').classList.add('hidden');
+    addItemToSection();
+}
+
+document.getElementById('section-name-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        saveNewSection();
+    }
+});
+
+document.getElementById('rename-section-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        saveRenamedSection();
+    }
+});
 
 document.addEventListener('click', (e) => {
     const menuContainer = document.getElementById('list-menu-container');
