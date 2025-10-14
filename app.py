@@ -456,11 +456,12 @@ def add_item(list_id):
     
     data = request.get_json()
     item_text = data.get('text', '').strip()
+    section = data.get('section')
     
     if not item_text:
         return jsonify({'success': False, 'message': 'Item text is required'}), 400
     
-    success, message, item_id = db.add_item_to_list(list_id, item_text)
+    success, message, item_id = db.add_item_to_list(list_id, item_text, section=section)
     
     if success:
         db.update_autocomplete_cache(current_user.id, item_text)
@@ -609,6 +610,67 @@ def autocomplete():
     
     suggestions = db.get_autocomplete_suggestions(current_user.id, query)
     return jsonify(suggestions)
+
+@app.route('/api/lists/<list_id>/sections', methods=['POST'])
+@login_required
+def create_section(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    
+    if not can_manage_list(list_doc, check_collaborator=True):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    item_id = data.get('item_id')
+    section_name = data.get('section_name', '').strip()
+    
+    if not item_id or not section_name:
+        return jsonify({'success': False, 'message': 'Item ID and section name are required'}), 400
+    
+    success, message = db.create_section(list_id, item_id, section_name)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/lists/<list_id>/sections/<section_name>', methods=['PUT'])
+@login_required
+def rename_section(list_id, section_name):
+    list_doc = db.get_list_by_id(list_id)
+    
+    if not can_manage_list(list_doc, check_collaborator=True):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    new_section_name = data.get('new_section_name', '').strip()
+    
+    if not new_section_name:
+        return jsonify({'success': False, 'message': 'New section name is required'}), 400
+    
+    success, message = db.rename_section(list_id, section_name, new_section_name)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/lists/<list_id>/sections/<section_name>', methods=['DELETE'])
+@login_required
+def delete_section(list_id, section_name):
+    list_doc = db.get_list_by_id(list_id)
+    
+    if not can_manage_list(list_doc, check_collaborator=True):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    success, message = db.delete_section(list_id, section_name)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/lists/<list_id>/sections', methods=['GET'])
+def get_sections(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    if not list_doc:
+        return jsonify({'error': 'List not found'}), 404
+    
+    is_owner = current_user.is_authenticated and str(list_doc['owner_id']) == current_user.id
+    is_collaborator = current_user.is_authenticated and db.is_collaborator(current_user.id, list_id)
+    
+    if not list_doc['is_public'] and not is_owner and not is_collaborator:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    sections = db.get_sections(list_id)
+    return jsonify({'sections': sections})
 
 @app.route('/api/theme', methods=['POST'])
 @login_required
