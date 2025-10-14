@@ -532,6 +532,33 @@ class Database:
         
         return True, 'Section created successfully'
     
+    def remove_item_from_section(self, list_id, item_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        item_found = False
+        
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                if 'section' in item:
+                    del item['section']
+                item_found = True
+                break
+        
+        if not item_found:
+            return False, 'Item not found'
+        
+        sorted_items = self._sort_items_with_sections(items)
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+        )
+        
+        return True, 'Item moved to loose items successfully'
+    
     def rename_section(self, list_id, old_section_name, new_section_name):
         list_doc = self.get_list_by_id(list_id)
         if not list_doc:

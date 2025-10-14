@@ -2081,5 +2081,115 @@ document.addEventListener('click', (e) => {
         dropdown.classList.add('hidden');
     }
 });
+
+let moveToSectionItemId = null;
+
+function showMoveToSectionModal() {
+    if (!contextMenuItemId || !contextMenuItemText) return;
+    
+    moveToSectionItemId = contextMenuItemId;
+    const itemText = contextMenuItemText;
+    
+    const itemRow = document.querySelector(`[data-item-id="${moveToSectionItemId}"]`);
+    const currentSection = itemRow ? itemRow.getAttribute('data-section') : null;
+    
+    hideContextMenu();
+    
+    const modal = document.getElementById('move-to-section-modal');
+    const itemNameSpan = document.getElementById('move-item-name');
+    const sectionList = document.getElementById('section-list');
+    
+    itemNameSpan.textContent = itemText;
+    
+    const sections = new Set();
+    document.querySelectorAll('.section-header').forEach(header => {
+        const sectionName = header.getAttribute('data-section-name');
+        if (sectionName && sectionName !== currentSection) {
+            sections.add(sectionName);
+        }
+    });
+    
+    const sortedSections = Array.from(sections).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    
+    let html = '';
+    
+    if (currentSection) {
+        html += `<div class="flex items-center justify-between p-3 rounded cursor-pointer hover:bg-opacity-80 transition-colors" 
+                     style="background-color: var(--bg-primary);"
+                     onclick="moveItemToSection(null)">
+                    <span>🔓 Loose Items (Remove from section)</span>
+                </div>`;
+    }
+    
+    sortedSections.forEach(sectionName => {
+        const escapedSection = sectionName.replace(/'/g, "\\'");
+        html += `<div class="flex items-center justify-between p-3 rounded cursor-pointer hover:bg-opacity-80 transition-colors" 
+                     style="background-color: var(--bg-primary);"
+                     onclick="moveItemToSection('${escapedSection}')">
+                    <span>📁 ${sectionName}</span>
+                </div>`;
+    });
+    
+    if (html === '') {
+        html = '<p class="text-center py-4" style="color: var(--text-secondary);">No other sections available</p>';
+    }
+    
+    sectionList.innerHTML = html;
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeMoveToSectionModal(event) {
+    if (event && event.target.id !== 'move-to-section-modal') {
+        return;
+    }
+    
+    const modal = document.getElementById('move-to-section-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    moveToSectionItemId = null;
+}
+
+async function moveItemToSection(sectionName) {
+    if (!moveToSectionItemId) {
+        closeMoveToSectionModal();
+        return;
+    }
+    
+    const itemId = moveToSectionItemId;
+    
+    const response = await fetch(`/api/lists/${listId}/sections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            item_id: itemId,
+            section_name: sectionName || ''
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        const message = sectionName 
+            ? `✓ Item moved to "${sectionName}"` 
+            : '✓ Item moved to loose items';
+        showModal(message, 'success');
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items);
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    closeMoveToSectionModal();
+}
 </script>
 {% endblock %}

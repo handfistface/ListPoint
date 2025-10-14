@@ -623,10 +623,13 @@ def create_section(list_id):
     item_id = data.get('item_id')
     section_name = data.get('section_name', '').strip()
     
-    if not item_id or not section_name:
-        return jsonify({'success': False, 'message': 'Item ID and section name are required'}), 400
+    if not item_id:
+        return jsonify({'success': False, 'message': 'Item ID is required'}), 400
     
-    success, message = db.create_section(list_id, item_id, section_name)
+    if section_name == '':
+        success, message = db.remove_item_from_section(list_id, item_id)
+    else:
+        success, message = db.create_section(list_id, item_id, section_name)
     return jsonify({'success': success, 'message': message})
 
 @app.route('/api/lists/<list_id>/sections/<section_name>', methods=['PUT'])
