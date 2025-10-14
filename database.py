@@ -95,7 +95,7 @@ class Database:
     
     def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None, parent_id=None):
         items = items or []
-        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        sorted_items = self._sort_items_with_sections(items)
         
         list_doc = {
             'name': name,
@@ -174,7 +174,16 @@ class Database:
         self.db.lists.delete_one({'_id': ObjectId(list_id)})
         self.db.favorites.delete_many({'list_id': ObjectId(list_id)})
     
-    def add_item_to_list(self, list_id, item_text):
+    def _sort_items_with_sections(self, items):
+        sectioned = [item for item in items if item.get('section')]
+        loose = [item for item in items if not item.get('section')]
+        
+        sectioned_sorted = sorted(sectioned, key=lambda x: (x['section'].lower(), x['text'].lower()))
+        loose_sorted = sorted(loose, key=lambda x: x['text'].lower())
+        
+        return sectioned_sorted + loose_sorted
+    
+    def add_item_to_list(self, list_id, item_text, section=None):
         list_doc = self.get_list_by_id(list_id)
         if not list_doc:
             return False, 'List not found', None
@@ -190,8 +199,11 @@ class Database:
             'added_at': datetime.utcnow()
         }
         
+        if section:
+            new_item['section'] = section
+        
         items = list_doc['items'] + [new_item]
-        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        sorted_items = self._sort_items_with_sections(items)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -271,11 +283,11 @@ class Database:
         }
         
         original_items.append(new_item)
-        sorted_original = sorted(original_items, key=lambda x: x['text'].lower())
+        sorted_original = self._sort_items_with_sections(original_items)
         
         items = list_doc.get('items', [])
         items.append(new_item.copy())
-        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        sorted_items = self._sort_items_with_sections(items)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -349,7 +361,7 @@ class Database:
                 item['text'] = new_text
                 break
         
-        sorted_items = sorted(items, key=lambda x: x['text'].lower())
+        sorted_items = self._sort_items_with_sections(items)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -390,8 +402,8 @@ class Database:
                 item['text'] = new_text
                 break
         
-        sorted_items = sorted(items, key=lambda x: x['text'].lower())
-        sorted_original = sorted(original_items, key=lambda x: x['text'].lower())
+        sorted_items = self._sort_items_with_sections(items)
+        sorted_original = self._sort_items_with_sections(original_items)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -493,6 +505,87 @@ class Database:
             )
         else:
             self.update_autocomplete_cache(user_id, new_text)
+    
+    def create_section(self, list_id, item_id, section_name):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        item_found = False
+        
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                item['section'] = section_name
+                item_found = True
+                break
+        
+        if not item_found:
+            return False, 'Item not found'
+        
+        sorted_items = self._sort_items_with_sections(items)
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+        )
+        
+        return True, 'Section created successfully'
+    
+    def rename_section(self, list_id, old_section_name, new_section_name):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        updated = False
+        
+        for item in items:
+            if item.get('section') == old_section_name:
+                item['section'] = new_section_name
+                updated = True
+        
+        if not updated:
+            return False, 'Section not found'
+        
+        sorted_items = self._sort_items_with_sections(items)
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+        )
+        
+        return True, 'Section renamed successfully'
+    
+    def delete_section(self, list_id, section_name):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        filtered_items = [item for item in items if item.get('section') != section_name]
+        
+        if len(filtered_items) == len(items):
+            return False, 'Section not found'
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': filtered_items, 'updated_at': datetime.utcnow()}}
+        )
+        
+        return True, 'Section deleted successfully'
+    
+    def get_sections(self, list_id):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return []
+        
+        sections = set()
+        for item in list_doc.get('items', []):
+            if item.get('section'):
+                sections.add(item['section'])
+        
+        return sorted(list(sections))
     
     def update_user_subscription(self, user_id, stripe_customer_id, stripe_subscription_id, is_ad_free, subscription_start=None, subscription_end=None):
         self.db.users.update_one(
