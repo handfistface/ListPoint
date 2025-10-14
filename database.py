@@ -190,7 +190,7 @@ class Database:
         
         for item in list_doc['items']:
             if item['text'].lower() == item_text.lower():
-                return False, 'Item already exists', None
+                return False, f'"{item_text}" is already in this list', None
         
         new_item = {
             '_id': ObjectId(),
@@ -272,7 +272,7 @@ class Database:
         original_items = list_doc.get('original_items', [])
         for item in original_items:
             if item['text'].lower() == item_text.lower():
-                return False, 'Item already exists', None
+                return False, f'"{item_text}" is already in this list', None
         
         new_item = {
             '_id': ObjectId(),
