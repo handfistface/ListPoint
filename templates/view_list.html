@@ -614,7 +614,14 @@ let contextMenuItemText = null;
 let contextMenuSectionName = null;
 let createSectionItemId = null;
 
+let eventListenersSetup = false;
+
 function setupItemEventListeners() {
+    if (eventListenersSetup) {
+        return;
+    }
+    eventListenersSetup = true;
+    
     const itemsList = document.getElementById('items-list');
     
     itemsList.addEventListener('contextmenu', (e) => {
