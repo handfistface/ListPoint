@@ -841,27 +841,11 @@ async function saveEditedItem() {
     if (result.success) {
         showModal('✓ Item updated successfully', 'success');
         
-        const itemRow = document.querySelector(`[data-item-id="${editingItemId}"]`);
-        const itemTextSpan = itemRow.querySelector('.item-text');
-        itemTextSpan.textContent = newText;
-        itemRow.setAttribute('data-item-text', newText);
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
         
-        const itemsList = document.getElementById('items-list');
-        const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const updatedText = newText.toLowerCase();
-        
-        itemRow.remove();
-        
-        const insertIndex = items.findIndex(item => {
-            if (item === itemRow) return false;
-            const itemText = item.querySelector('.item-text').textContent;
-            return itemText.toLowerCase() > updatedText;
-        });
-        
-        if (insertIndex === -1) {
-            itemsList.appendChild(itemRow);
-        } else {
-            itemsList.insertBefore(itemRow, items[insertIndex]);
+        if (listData.success) {
+            rebuildItemsList(listData.items);
         }
         
         closeEditModal();
