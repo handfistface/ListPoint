@@ -111,7 +111,12 @@
     <nav class="border-b" style="border-color: var(--border-color);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
+                <div class="flex items-center space-x-4">
+                    {% if current_user.is_authenticated %}
+                        <button onclick="toggleHamburgerMenu()" class="md:hidden card px-3 py-2 rounded hover:opacity-80">
+                            <span id="hamburger-icon">☰</span>
+                        </button>
+                    {% endif %}
                     <a href="{{ url_for('index') }}" class="flex items-center">
                         <img src="{{ url_for('static', filename='logo.png') }}" alt="List Point" class="h-12">
                     </a>
@@ -136,6 +141,24 @@
                 </div>
             </div>
         </div>
+        
+        {% if current_user.is_authenticated %}
+        <div id="hamburger-menu" class="hidden md:hidden border-t" style="border-color: var(--border-color);">
+            <div class="px-4 py-2 space-y-1">
+                <a href="{{ url_for('index') }}" class="block card px-4 py-3 rounded hover:opacity-80" onclick="toggleHamburgerMenu()">
+                    🏠 Home
+                </a>
+                <a href="{{ url_for('explore') }}" class="block card px-4 py-3 rounded hover:opacity-80" onclick="toggleHamburgerMenu()">
+                    🔍 Explore
+                </a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_users') }}" class="block card px-4 py-3 rounded hover:opacity-80" onclick="toggleHamburgerMenu()">
+                    🔧 Admin Panel
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </nav>
 
     {% if current_user.is_authenticated and request.endpoint == 'index' %}
@@ -233,15 +256,37 @@
             }
         }
 
+        function toggleHamburgerMenu() {
+            const menu = document.getElementById('hamburger-menu');
+            const icon = document.getElementById('hamburger-icon');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.textContent = '✕';
+            } else {
+                menu.classList.add('hidden');
+                icon.textContent = '☰';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Close account menu when clicking outside
+            // Close menus when clicking outside
             document.addEventListener('click', (e) => {
-                const menu = document.getElementById('account-menu');
+                // Close account menu
+                const accountMenu = document.getElementById('account-menu');
                 const accountButton = e.target.closest('.cursor-pointer.card');
-                if (menu && !menu.classList.contains('hidden') && !accountButton && !menu.contains(e.target)) {
-                    menu.classList.add('hidden');
+                if (accountMenu && !accountMenu.classList.contains('hidden') && !accountButton && !accountMenu.contains(e.target)) {
+                    accountMenu.classList.add('hidden');
                     const arrow = document.getElementById('account-arrow');
                     if (arrow) arrow.textContent = '▼';
+                }
+                
+                // Close hamburger menu
+                const hamburgerMenu = document.getElementById('hamburger-menu');
+                const hamburgerButton = e.target.closest('button[onclick="toggleHamburgerMenu()"]');
+                if (hamburgerMenu && !hamburgerMenu.classList.contains('hidden') && !hamburgerButton && !hamburgerMenu.contains(e.target)) {
+                    hamburgerMenu.classList.add('hidden');
+                    const icon = document.getElementById('hamburger-icon');
+                    if (icon) icon.textContent = '☰';
                 }
             });
             
