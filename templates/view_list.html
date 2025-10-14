@@ -612,6 +612,7 @@ let contextMenuItemId = null;
 let contextMenuItemText = null;
 
 let contextMenuSectionName = null;
+let createSectionItemId = null;
 
 function setupItemEventListeners() {
     const itemsList = document.getElementById('items-list');
@@ -1525,6 +1526,8 @@ function toggleListMenu() {
 
 function createSectionFromItem() {
     if (!contextMenuItemId || !contextMenuItemText) return;
+    
+    createSectionItemId = contextMenuItemId;
     hideContextMenu();
     
     const modal = document.getElementById('create-section-modal');
@@ -1553,7 +1556,7 @@ async function saveNewSection() {
     const input = document.getElementById('section-name-input');
     const sectionName = input.value.trim();
     
-    if (!sectionName || !contextMenuItemId) {
+    if (!sectionName || !createSectionItemId) {
         closeCreateSectionModal();
         return;
     }
@@ -1565,7 +1568,7 @@ async function saveNewSection() {
             'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({ 
-            item_id: contextMenuItemId,
+            item_id: createSectionItemId,
             section_name: sectionName
         })
     });
@@ -1580,6 +1583,7 @@ async function saveNewSection() {
     }
     
     closeCreateSectionModal();
+    createSectionItemId = null;
 }
 
 function renameSectionFromMenu() {
