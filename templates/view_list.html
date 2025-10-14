@@ -140,7 +140,7 @@
                     <button id="add-item-btn" onclick="addItem()" class="px-4 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                         Add
                     </button>
-                    <button id="undo-btn" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 hidden">
+                    <button id="undo-btn" class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 hidden" style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
                         ↶ Undo (<span id="undo-count">0</span>)
                     </button>
                 </div>
@@ -1211,14 +1211,27 @@ function showUndoModal() {
     const modal = document.getElementById('undo-modal');
     const modalList = document.getElementById('undo-modal-list');
     
-    modalList.innerHTML = undoStack.map((item, index) => `
+    // Create a map of unique items (most recent occurrence of each text)
+    const uniqueItems = new Map();
+    undoStack.forEach((item, index) => {
+        const key = item.text.toLowerCase();
+        if (!uniqueItems.has(key) || uniqueItems.get(key).index < index) {
+            uniqueItems.set(key, { item, index });
+        }
+    });
+    
+    // Convert to array and sort by index descending (most recent first)
+    const itemsToDisplay = Array.from(uniqueItems.values())
+        .sort((a, b) => b.index - a.index);
+    
+    modalList.innerHTML = itemsToDisplay.map(({ item, index }) => `
         <div class="flex items-center justify-between p-3 rounded cursor-pointer hover:bg-opacity-80 transition-colors"
              style="background-color: var(--bg-primary);"
-             onclick="restoreFromModal(${index})"
+             onclick="restoreFromModalByIndex(${index})"
              data-undo-index="${index}">
             <span>${item.text}</span>
         </div>
-    `).reverse().join('');
+    `).join('');
     
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -1249,6 +1262,63 @@ async function restoreFromModal(index) {
     }
     
     undoStack.splice(reversedIndex, 1);
+    updateUndoButton();
+    
+    const endpoint = (isEthereal && currentMode === 'edit') 
+        ? `/api/lists/${listId}/original/items`
+        : `/api/lists/${listId}/items`;
+    
+    const requestBody = { text: item.text };
+    if (item.section && item.section !== 'null' && item.section !== 'undefined') {
+        requestBody.section = item.section;
+    }
+    
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(requestBody)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        // Fetch updated items and rebuild the list
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items);
+            showModal('✓ Item restored', 'success');
+        }
+        
+        if (undoStack.length === 0) {
+            closeUndoModal();
+        } else {
+            showUndoModal();
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+        closeUndoModal();
+    }
+}
+
+async function restoreFromModalByIndex(stackIndex) {
+    const item = undoStack[stackIndex];
+    
+    // Check if item already exists in the list
+    const existingItems = Array.from(document.querySelectorAll('.item-text'));
+    const itemExists = existingItems.some(el => el.textContent.toLowerCase() === item.text.toLowerCase());
+    
+    if (itemExists) {
+        showModal('✗ Item already exists in the list', 'error');
+        closeUndoModal();
+        return;
+    }
+    
+    undoStack.splice(stackIndex, 1);
     updateUndoButton();
     
     const endpoint = (isEthereal && currentMode === 'edit') 
