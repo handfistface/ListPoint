@@ -1,7 +1,9 @@
 # List Point Web App
 
 ## Recent Changes
-- **October 14, 2025**: Fixed undo functionality bug where deleted items were not being restored to the list without a page reload. Created missing `/api/lists/<list_id>` JSON API endpoint that returns list data with items.
+- **October 14, 2025**: 
+  - Fixed undo functionality bug where deleted items were not being restored to the list without a page reload. Created missing `/api/lists/<list_id>` JSON API endpoint that returns list data with items.
+  - Fixed context menu bug where right-click/long-press dialog was appearing during regular list interactions. Added event listener guard to prevent duplicate listeners from being attached when list is rebuilt.
 
 ## Overview
 List Point is a minimalistic Flask-based web application designed for creating, managing, and sharing various types of lists. It incorporates social features, such as list discovery and collaboration, alongside robust user authentication and a clean, responsive user interface. The platform aims to provide a flexible and intuitive list-making experience, supporting both permanent item management and dynamic, restorable checklist templates. The business vision is to offer a streamlined list management solution with integrated social functionalities and a sustainable revenue model through subscriptions and advertising.
