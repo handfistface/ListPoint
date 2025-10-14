@@ -1072,6 +1072,7 @@ async function deleteItemByRow(itemId, event) {
     
     const itemRow = document.querySelector(`[data-item-id="${itemId}"]`);
     const itemText = itemRow.getAttribute('data-item-text');
+    const itemSection = itemRow.getAttribute('data-section');
     
     const endpoint = (isEthereal && currentMode === 'edit')
         ? `/api/lists/${listId}/original/items/${itemId}`
@@ -1085,7 +1086,7 @@ async function deleteItemByRow(itemId, event) {
     });
     
     if (response.ok) {
-        undoStack.push({ id: itemId, text: itemText });
+        undoStack.push({ id: itemId, text: itemText, section: itemSection });
         if (undoStack.length > MAX_UNDO) {
             undoStack.shift();
         }
@@ -1176,69 +1177,30 @@ async function undoDelete() {
         ? `/api/lists/${listId}/original/items`
         : `/api/lists/${listId}/items`;
     
+    const requestBody = { text: item.text };
+    if (item.section && item.section !== 'null' && item.section !== 'undefined') {
+        requestBody.section = item.section;
+    }
+    
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ text: item.text })
+        body: JSON.stringify(requestBody)
     });
     
     if (response.ok) {
         const result = await response.json();
         
-        const itemsList = document.getElementById('items-list');
-        const emptyMessage = itemsList.querySelector('p');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
+        // Fetch updated items and rebuild the list
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
         
-        const newItemDiv = document.createElement('div');
-        newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
-        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
-        newItemDiv.style.cursor = 'pointer';
-        newItemDiv.style.userSelect = 'none';
-        newItemDiv.style.webkitUserSelect = 'none';
-        newItemDiv.style.mozUserSelect = 'none';
-        newItemDiv.style.msUserSelect = 'none';
-        newItemDiv.setAttribute('data-item-id', result.item_id);
-        newItemDiv.setAttribute('data-item-text', item.text);
-        newItemDiv.setAttribute('data-checked', 'false');
-        newItemDiv.setAttribute('data-quantity', '1');
-        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
-        
-        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
-        const quantityHidden = isEthereal ? 'hidden' : '';
-        
-        newItemDiv.innerHTML = `
-            <div class="flex items-center gap-3 flex-1">
-                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
-                       onchange="toggleItemChecked('${result.item_id}')"
-                       onclick="event.stopPropagation()">
-                <span class="item-text">${item.text}</span>
-            </div>
-            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
-                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
-                    −
-                </button>
-                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', 1, event)" data-action="increase">
-                    +
-                </button>
-            </div>` : ''}
-        `;
-        
-        const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const undoneItemText = item.text.toLowerCase();
-        const insertIndex = items.findIndex(existingItem => {
-            const itemText = existingItem.querySelector('.item-text').textContent;
-            return itemText.toLowerCase() > undoneItemText;
-        });
-        
-        if (insertIndex === -1) {
-            itemsList.appendChild(newItemDiv);
-        } else {
-            itemsList.insertBefore(newItemDiv, items[insertIndex]);
+        if (listData.success) {
+            rebuildItemsList(listData.items);
+            showModal('✓ Item restored', 'success');
         }
     }
 }
@@ -1302,72 +1264,31 @@ async function restoreFromModal(index) {
         ? `/api/lists/${listId}/original/items`
         : `/api/lists/${listId}/items`;
     
+    const requestBody = { text: item.text };
+    if (item.section && item.section !== 'null' && item.section !== 'undefined') {
+        requestBody.section = item.section;
+    }
+    
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ text: item.text })
+        body: JSON.stringify(requestBody)
     });
     
     const result = await response.json();
     
     if (result.success) {
-        const itemsList = document.getElementById('items-list');
-        const emptyMessage = itemsList.querySelector('p');
-        if (emptyMessage) {
-            emptyMessage.remove();
+        // Fetch updated items and rebuild the list
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items);
+            showModal('✓ Item restored', 'success');
         }
-        
-        const newItemDiv = document.createElement('div');
-        newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
-        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
-        newItemDiv.style.cursor = 'pointer';
-        newItemDiv.style.userSelect = 'none';
-        newItemDiv.style.webkitUserSelect = 'none';
-        newItemDiv.style.mozUserSelect = 'none';
-        newItemDiv.style.msUserSelect = 'none';
-        newItemDiv.setAttribute('data-item-id', result.item_id);
-        newItemDiv.setAttribute('data-item-text', item.text);
-        newItemDiv.setAttribute('data-checked', 'false');
-        newItemDiv.setAttribute('data-quantity', '1');
-        newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
-        
-        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
-        const quantityHidden = isEthereal ? 'hidden' : '';
-        
-        newItemDiv.innerHTML = `
-            <div class="flex items-center gap-3 flex-1">
-                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
-                       onchange="toggleItemChecked('${result.item_id}')"
-                       onclick="event.stopPropagation()">
-                <span class="item-text">${item.text}</span>
-            </div>
-            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
-                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', -1, event)" data-action="decrease">
-                    −
-                </button>
-                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${result.item_id}', 1, event)" data-action="increase">
-                    +
-                </button>
-            </div>` : ''}
-        `;
-        
-        const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const restoredItemText = item.text.toLowerCase();
-        const insertIndex = items.findIndex(existingItem => {
-            const itemText = existingItem.querySelector('.item-text').textContent;
-            return itemText.toLowerCase() > restoredItemText;
-        });
-        
-        if (insertIndex === -1) {
-            itemsList.appendChild(newItemDiv);
-        } else {
-            itemsList.insertBefore(newItemDiv, items[insertIndex]);
-        }
-        
-        showModal('✓ Item restored', 'success');
         
         if (undoStack.length === 0) {
             closeUndoModal();
