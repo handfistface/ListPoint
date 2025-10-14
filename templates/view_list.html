@@ -6,10 +6,10 @@
 {% block extra_css %}
 <style>
     .section-item-odd {
-        background-color: var(--bg-primary);
+        background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     }
     .section-item-even {
-        background-color: var(--bg-secondary);
+        background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
     }
     .section-header {
         border-bottom: 2px solid var(--border-color);
@@ -1577,13 +1577,165 @@ async function saveNewSection() {
     
     if (result.success) {
         showModal('✓ Section created successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+        
+        const itemRow = document.querySelector(`[data-item-id="${createSectionItemId}"]`);
+        if (itemRow) {
+            itemRow.setAttribute('data-section', sectionName);
+            
+            const itemsList = document.getElementById('items-list');
+            const itemsListHtml = itemsList.innerHTML;
+            
+            const itemsArray = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const itemId = row.getAttribute('data-item-id');
+                const itemText = row.getAttribute('data-item-text');
+                const itemSection = row.getAttribute('data-section');
+                const itemChecked = row.getAttribute('data-checked') === 'true';
+                const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+                
+                itemsArray.push({
+                    _id: itemId,
+                    text: itemText,
+                    section: itemSection,
+                    checked: itemChecked,
+                    quantity: itemQuantity
+                });
+            });
+            
+            rebuildItemsList(itemsArray);
+        }
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
     
     closeCreateSectionModal();
     createSectionItemId = null;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function escapeJs(text) {
+    return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+}
+
+function rebuildItemsList(items) {
+    const sections = {};
+    const looseItems = [];
+    
+    items.forEach(item => {
+        if (item.section) {
+            if (!sections[item.section]) {
+                sections[item.section] = [];
+            }
+            sections[item.section].push(item);
+        } else {
+            looseItems.push(item);
+        }
+    });
+    
+    const sortedSections = Object.keys(sections).sort();
+    
+    let html = '';
+    
+    sortedSections.forEach(sectionName => {
+        const sectionItems = sections[sectionName].sort((a, b) => a.text.localeCompare(b.text));
+        const escapedSectionName = escapeHtml(sectionName);
+        const jsSafeSectionName = escapeJs(sectionName);
+        
+        html += `<div class="section-group mb-4" data-section-name="${escapedSectionName}">`;
+        html += `<div class="section-header flex items-center justify-between p-3 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-section-name="${escapedSectionName}">`;
+        html += `<span>${escapedSectionName}</span>`;
+        
+        if (isOwner || isCollaborator) {
+            html += `<button onclick="showSectionAddModal('${jsSafeSectionName}', event)" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">➕</button>`;
+        }
+        
+        html += `</div><div class="section-items">`;
+        
+        sectionItems.forEach((item, index) => {
+            const checkedClass = item.checked ? 'opacity-50' : '';
+            const stripeClass = index % 2 === 0 ? 'section-item-even' : 'section-item-odd';
+            const lineThrough = item.checked ? 'line-through' : '';
+            const checkboxHidden = !isEthereal ? 'hidden' : '';
+            const checked = item.checked ? 'checked' : '';
+            const quantityVisible = item.quantity > 1 ? '' : 'invisible';
+            const escapedItemText = escapeHtml(item.text);
+            const escapedItemSection = escapeHtml(item.section);
+            const jsSafeItemId = escapeJs(item._id);
+            
+            html += `<div class="flex items-center justify-between p-3 item-row ${checkedClass} ${stripeClass}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" data-section="${escapedItemSection}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
+            html += `<div class="flex items-center gap-3 flex-1">`;
+            html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
+            html += `<span class="item-text ${lineThrough}">${escapedItemText}</span>`;
+            
+            if (item.quantity > 1) {
+                html += `<span class="text-sm" style="color: var(--text-secondary);">x${escapeHtml(String(item.quantity))}</span>`;
+            }
+            
+            html += `</div>`;
+            
+            if (isOwner || isCollaborator) {
+                const decreaseHidden = isEthereal ? 'hidden' : '';
+                const increaseHidden = isEthereal ? 'hidden' : '';
+                html += `<div class="flex items-center gap-2">`;
+                html += `<button class="quantity-btn ${decreaseHidden} ${quantityVisible} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', -1, event)" data-action="decrease">−</button>`;
+                html += `<button class="quantity-btn ${increaseHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', 1, event)" data-action="increase">+</button>`;
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    if (looseItems.length > 0) {
+        const sortedLooseItems = looseItems.sort((a, b) => a.text.localeCompare(b.text));
+        
+        html += `<div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">`;
+        html += `<div class="space-y-2">`;
+        
+        sortedLooseItems.forEach(item => {
+            const checkedClass = item.checked ? 'opacity-50' : '';
+            const lineThrough = item.checked ? 'line-through' : '';
+            const checkboxHidden = !isEthereal ? 'hidden' : '';
+            const checked = item.checked ? 'checked' : '';
+            const quantityVisible = item.quantity > 1 ? '' : 'invisible';
+            const escapedItemText = escapeHtml(item.text);
+            const jsSafeItemId = escapeJs(item._id);
+            
+            html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
+            html += `<div class="flex items-center gap-3 flex-1">`;
+            html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
+            html += `<span class="item-text ${lineThrough}">${escapedItemText}</span>`;
+            
+            if (item.quantity > 1) {
+                html += `<span class="text-sm" style="color: var(--text-secondary);">x${escapeHtml(String(item.quantity))}</span>`;
+            }
+            
+            html += `</div>`;
+            
+            if (isOwner || isCollaborator) {
+                const decreaseHidden = isEthereal ? 'hidden' : '';
+                const increaseHidden = isEthereal ? 'hidden' : '';
+                html += `<div class="flex items-center gap-2">`;
+                html += `<button class="quantity-btn ${decreaseHidden} ${quantityVisible} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', -1, event)" data-action="decrease">−</button>`;
+                html += `<button class="quantity-btn ${increaseHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', 1, event)" data-action="increase">+</button>`;
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    document.getElementById('items-list').innerHTML = html;
+    setupItemEventListeners();
 }
 
 function renameSectionFromMenu() {
@@ -1616,13 +1768,14 @@ function closeRenameSectionModal(event) {
 async function saveRenamedSection() {
     const input = document.getElementById('rename-section-input');
     const newSectionName = input.value.trim();
+    const oldSectionName = contextMenuSectionName;
     
-    if (!newSectionName || !contextMenuSectionName || newSectionName === contextMenuSectionName) {
+    if (!newSectionName || !oldSectionName || newSectionName === oldSectionName) {
         closeRenameSectionModal();
         return;
     }
     
-    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(contextMenuSectionName)}`, {
+    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(oldSectionName)}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -1635,7 +1788,29 @@ async function saveRenamedSection() {
     
     if (result.success) {
         showModal('✓ Section renamed successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+        
+        const itemsArray = [];
+        document.querySelectorAll('.item-row').forEach(row => {
+            const itemId = row.getAttribute('data-item-id');
+            const itemText = row.getAttribute('data-item-text');
+            let itemSection = row.getAttribute('data-section');
+            const itemChecked = row.getAttribute('data-checked') === 'true';
+            const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+            
+            if (itemSection === oldSectionName) {
+                itemSection = newSectionName;
+            }
+            
+            itemsArray.push({
+                _id: itemId,
+                text: itemText,
+                section: itemSection,
+                checked: itemChecked,
+                quantity: itemQuantity
+            });
+        });
+        
+        rebuildItemsList(itemsArray);
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
@@ -1663,12 +1838,14 @@ function closeDeleteSectionModal(event) {
 }
 
 async function confirmDeleteSection() {
-    if (!contextMenuSectionName) {
+    const sectionToDelete = contextMenuSectionName;
+    
+    if (!sectionToDelete) {
         closeDeleteSectionModal();
         return;
     }
     
-    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(contextMenuSectionName)}`, {
+    const response = await fetch(`/api/lists/${listId}/sections/${encodeURIComponent(sectionToDelete)}`, {
         method: 'DELETE',
         headers: {
             'X-CSRFToken': csrfToken
@@ -1679,7 +1856,28 @@ async function confirmDeleteSection() {
     
     if (result.success) {
         showModal('✓ Section deleted successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+        
+        const itemsArray = [];
+        document.querySelectorAll('.item-row').forEach(row => {
+            const itemSection = row.getAttribute('data-section');
+            
+            if (itemSection !== sectionToDelete) {
+                const itemId = row.getAttribute('data-item-id');
+                const itemText = row.getAttribute('data-item-text');
+                const itemChecked = row.getAttribute('data-checked') === 'true';
+                const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+                
+                itemsArray.push({
+                    _id: itemId,
+                    text: itemText,
+                    section: itemSection,
+                    checked: itemChecked,
+                    quantity: itemQuantity
+                });
+            }
+        });
+        
+        rebuildItemsList(itemsArray);
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
@@ -1726,8 +1924,9 @@ function closeSectionAddModal(event) {
 async function addItemToSection() {
     const input = document.getElementById('section-item-input');
     const itemText = input.value.trim();
+    const sectionName = currentSectionForAdd;
     
-    if (!itemText || !currentSectionForAdd) {
+    if (!itemText || !sectionName) {
         closeSectionAddModal();
         return;
     }
@@ -1740,7 +1939,7 @@ async function addItemToSection() {
         },
         body: JSON.stringify({ 
             text: itemText,
-            section: currentSectionForAdd
+            section: sectionName
         })
     });
     
@@ -1748,7 +1947,33 @@ async function addItemToSection() {
     
     if (result.success) {
         showModal('✓ Item added successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+        
+        const itemsArray = [];
+        document.querySelectorAll('.item-row').forEach(row => {
+            const itemId = row.getAttribute('data-item-id');
+            const itemText = row.getAttribute('data-item-text');
+            const itemSection = row.getAttribute('data-section');
+            const itemChecked = row.getAttribute('data-checked') === 'true';
+            const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+            
+            itemsArray.push({
+                _id: itemId,
+                text: itemText,
+                section: itemSection,
+                checked: itemChecked,
+                quantity: itemQuantity
+            });
+        });
+        
+        itemsArray.push({
+            _id: result.item_id,
+            text: itemText,
+            section: sectionName,
+            checked: false,
+            quantity: 1
+        });
+        
+        rebuildItemsList(itemsArray);
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
