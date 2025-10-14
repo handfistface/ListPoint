@@ -125,7 +125,7 @@
     </div>
 
     {% if is_owner or is_collaborator %}
-        <div class="mb-6" id="add-item-section">
+        <div class="mb-6 relative" id="add-item-section">
             <div id="autocomplete" class="w-full card rounded shadow-lg hidden max-h-48 overflow-y-auto mb-2" style="position: relative; z-index: 1;"></div>
             <div class="relative">
                 <textarea 
@@ -145,7 +145,7 @@
                     </button>
                 </div>
             </div>
-            <div id="inline-notification" class="w-full hidden mt-2 p-3 rounded text-white text-center"></div>
+            <div id="inline-notification" class="absolute w-full hidden p-3 rounded text-white text-center" style="top: 100%; margin-top: 8px; z-index: 50;"></div>
         </div>
     {% endif %}
 
@@ -1502,7 +1502,10 @@ function showModal(message, type) {
     const notification = document.getElementById('inline-notification');
     
     const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-    notification.className = `w-full mt-2 p-3 rounded text-white text-center ${bgColor}`;
+    notification.className = `absolute w-full p-3 rounded text-white text-center ${bgColor}`;
+    notification.style.top = '100%';
+    notification.style.marginTop = '8px';
+    notification.style.zIndex = '50';
     notification.textContent = message;
     notification.classList.remove('hidden');
     
