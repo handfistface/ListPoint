@@ -267,6 +267,13 @@
         >
             📁 Create Section
         </button>
+        <button 
+            onclick="showMoveToSectionModal()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            🔀 Move to Section
+        </button>
         {% endif %}
     </div>
     <div class="py-1 hidden" id="section-context-menu">
@@ -426,6 +433,23 @@
                 class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
             >
                 Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="move-to-section-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeMoveToSectionModal(event)">
+    <div class="card p-6 rounded-lg max-w-md w-full mx-4 fade-in" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold mb-4">Move Item to Section</h3>
+        <p class="text-sm mb-4" style="color: var(--text-secondary);">Select a section to move "<span id="move-item-name"></span>" to:</p>
+        <div id="section-list" class="space-y-2 overflow-y-auto max-h-64 mb-4">
+        </div>
+        <div class="flex justify-end">
+            <button 
+                onclick="closeMoveToSectionModal()" 
+                class="px-4 py-2 rounded card hover:opacity-80"
+            >
+                Cancel
             </button>
         </div>
     </div>
