@@ -1659,14 +1659,18 @@ function rebuildItemsList(items) {
     setupItemEventListeners();
 }
 
+let renamingSectionName = null;
+
 function renameSectionFromMenu() {
     if (!contextMenuSectionName) return;
+    
+    renamingSectionName = contextMenuSectionName;
     hideContextMenu();
     
     const modal = document.getElementById('rename-section-modal');
     const input = document.getElementById('rename-section-input');
     
-    input.value = contextMenuSectionName;
+    input.value = renamingSectionName;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     
@@ -1684,15 +1688,17 @@ function closeRenameSectionModal(event) {
     const modal = document.getElementById('rename-section-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    renamingSectionName = null;
 }
 
 async function saveRenamedSection() {
     const input = document.getElementById('rename-section-input');
     const newSectionName = input.value.trim();
-    const oldSectionName = contextMenuSectionName;
+    const oldSectionName = renamingSectionName;
     
     if (!newSectionName || !oldSectionName || newSectionName === oldSectionName) {
         closeRenameSectionModal();
+        renamingSectionName = null;
         return;
     }
     
@@ -1710,33 +1716,19 @@ async function saveRenamedSection() {
     if (result.success) {
         showModal('✓ Section renamed successfully', 'success');
         
-        const itemsArray = [];
-        document.querySelectorAll('.item-row').forEach(row => {
-            const itemId = row.getAttribute('data-item-id');
-            const itemText = row.getAttribute('data-item-text');
-            let itemSection = row.getAttribute('data-section');
-            const itemChecked = row.getAttribute('data-checked') === 'true';
-            const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
-            
-            if (itemSection === oldSectionName) {
-                itemSection = newSectionName;
-            }
-            
-            itemsArray.push({
-                _id: itemId,
-                text: itemText,
-                section: itemSection,
-                checked: itemChecked,
-                quantity: itemQuantity
-            });
-        });
+        // Fetch updated items and rebuild the list
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
         
-        rebuildItemsList(itemsArray);
+        if (listData.success) {
+            rebuildItemsList(listData.items);
+        }
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
     
     closeRenameSectionModal();
+    renamingSectionName = null;
 }
 
 function deleteSectionFromMenu() {
