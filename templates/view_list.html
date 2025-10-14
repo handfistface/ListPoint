@@ -994,57 +994,6 @@ async function addItem() {
         addBtn.textContent = '...';
         addBtn.style.opacity = '0.6';
         
-        const itemsList = document.getElementById('items-list');
-        const emptyMessage = itemsList.querySelector('p');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
-        
-        const tempId = 'temp_' + Date.now();
-        const newItemDiv = document.createElement('div');
-        newItemDiv.className = 'flex items-center justify-between p-3 rounded item-row';
-        newItemDiv.style.backgroundColor = 'var(--bg-primary)';
-        newItemDiv.style.cursor = 'pointer';
-        newItemDiv.style.userSelect = 'none';
-        newItemDiv.style.webkitUserSelect = 'none';
-        newItemDiv.style.mozUserSelect = 'none';
-        newItemDiv.style.msUserSelect = 'none';
-        newItemDiv.setAttribute('data-item-id', tempId);
-        newItemDiv.setAttribute('data-item-text', text);
-        newItemDiv.setAttribute('data-checked', 'false');
-        newItemDiv.setAttribute('data-quantity', '1');
-        
-        const checkboxHidden = (!isEthereal || currentMode === 'edit') ? 'hidden' : '';
-        const quantityHidden = isEthereal ? 'hidden' : '';
-        
-        newItemDiv.innerHTML = `
-            <div class="flex items-center gap-3 flex-1">
-                <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" 
-                       onclick="event.stopPropagation()" disabled>
-                <span class="item-text" style="opacity: 0.6;">${text}</span>
-            </div>
-            ${isOwner || isCollaborator ? `<div class="flex items-center gap-2">
-                <button class="quantity-btn ${quantityHidden} invisible text-lg px-2 hover:opacity-70" onclick="event.stopPropagation()" data-action="decrease">
-                    −
-                </button>
-                <button class="quantity-btn ${quantityHidden} text-lg px-2 hover:opacity-70" onclick="event.stopPropagation()" data-action="increase">
-                    +
-                </button>
-            </div>` : ''}
-        `;
-        
-        const items = Array.from(itemsList.querySelectorAll('.item-row'));
-        const insertIndex = items.findIndex(item => {
-            const itemText = item.querySelector('.item-text').textContent;
-            return itemText.toLowerCase() > text.toLowerCase();
-        });
-        
-        if (insertIndex === -1) {
-            itemsList.appendChild(newItemDiv);
-        } else {
-            itemsList.insertBefore(newItemDiv, items[insertIndex]);
-        }
-        
         itemInput.value = '';
         autoResizeTextarea();
         
@@ -1064,31 +1013,35 @@ async function addItem() {
         const result = await response.json();
         
         if (result.success) {
-            newItemDiv.setAttribute('data-item-id', result.item_id);
-            newItemDiv.setAttribute('onclick', `deleteItemByRow('${result.item_id}', event)`);
-            const checkbox = newItemDiv.querySelector('.item-checkbox');
-            if (checkbox) {
-                checkbox.disabled = false;
-                checkbox.setAttribute('onchange', `toggleItemChecked('${result.item_id}')`);
-            }
-            const itemTextSpan = newItemDiv.querySelector('.item-text');
-            itemTextSpan.style.opacity = '1';
+            showModal('✓ Item added', 'success');
             
-            const quantityBtns = newItemDiv.querySelectorAll('.quantity-btn');
-            quantityBtns.forEach((btn, idx) => {
-                if (idx === 0) {
-                    btn.setAttribute('onclick', `adjustQuantity('${result.item_id}', -1, event)`);
-                } else {
-                    btn.setAttribute('onclick', `adjustQuantity('${result.item_id}', 1, event)`);
-                }
+            const itemsArray = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const itemId = row.getAttribute('data-item-id');
+                const itemText = row.getAttribute('data-item-text');
+                const itemSection = row.getAttribute('data-section');
+                const itemChecked = row.getAttribute('data-checked') === 'true';
+                const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+                
+                itemsArray.push({
+                    _id: itemId,
+                    text: itemText,
+                    section: itemSection,
+                    checked: itemChecked,
+                    quantity: itemQuantity
+                });
             });
             
-            showModal('✓ Item added', 'success');
+            itemsArray.push({
+                _id: result.item_id,
+                text: text,
+                section: null,
+                checked: false,
+                quantity: 1
+            });
+            
+            rebuildItemsList(itemsArray);
         } else {
-            newItemDiv.remove();
-            if (itemsList.querySelectorAll('.item-row').length === 0) {
-                itemsList.innerHTML = '<p class="text-center py-8" style="color: var(--text-secondary);">No items yet. Start adding items above!</p>';
-            }
             showModal(`✗ ${result.message}`, 'error');
             itemInput.value = text;
         }

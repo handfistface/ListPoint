@@ -2,6 +2,7 @@
 
 ## Recent Changes
 - **October 14, 2025**: 
+  - **Fixed critical bug**: Resolved "Error adding item" failures when adding items to lists with sections. The addItem() function was attempting manual alphabetical insertion which broke when sections were present. Updated to use rebuildItemsList() after adding items (matching the addItemToSection() approach), ensuring backend's proper section sorting is always respected.
   - **Added "Move to Section" feature**: Users can now move items between sections or to loose items using the right-click/long-press context menu. The modal displays all available sections (excluding the current section) and an option to remove the item from its section (move to loose items). Items can be moved from any section to another, or from loose items to a section.
   - Fixed undo functionality bug where deleted items were not being restored to the list without a page reload. Created missing `/api/lists/<list_id>` JSON API endpoint that returns list data with items.
   - Fixed context menu bug where right-click/long-press dialog was appearing during regular list interactions. Added event listener guard to prevent duplicate listeners from being attached when list is rebuilt.
