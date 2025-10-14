@@ -175,9 +175,9 @@
                                 </button>
                             {% endif %}
                         </div>
-                        <div class="section-items">
+                        <div class="section-items space-y-2 pt-2">
                             {% for item in sections[section_name] %}
-                                <div class="flex items-center justify-between p-3 item-row {% if item.get('checked') %}opacity-50{% endif %} {% if loop.index % 2 == 0 %}section-item-even{% else %}section-item-odd{% endif %}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" data-section="{{ item.section }}" onclick="deleteItemByRow('{{ item._id }}', event)">
+                                <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %} {% if loop.index % 2 == 0 %}section-item-even{% else %}section-item-odd{% endif %}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" data-section="{{ item.section }}" onclick="deleteItemByRow('{{ item._id }}', event)">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
                                                onchange="toggleItemChecked('{{ item._id }}')" 
@@ -1694,7 +1694,7 @@ function rebuildItemsList(items) {
             html += `<button onclick="showSectionAddModal('${jsSafeSectionName}', event)" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">➕</button>`;
         }
         
-        html += `</div><div class="section-items">`;
+        html += `</div><div class="section-items space-y-2 pt-2">`;
         
         sectionItems.forEach((item, index) => {
             const checkedClass = item.checked ? 'opacity-50' : '';
@@ -1707,7 +1707,7 @@ function rebuildItemsList(items) {
             const escapedItemSection = escapeHtml(item.section);
             const jsSafeItemId = escapeJs(item._id);
             
-            html += `<div class="flex items-center justify-between p-3 item-row ${checkedClass} ${stripeClass}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" data-section="${escapedItemSection}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
+            html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass} ${stripeClass}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" data-section="${escapedItemSection}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
             html += `<div class="flex items-center gap-3 flex-1">`;
             html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
             html += `<span class="item-text ${lineThrough}">${escapedItemText}</span>`;
