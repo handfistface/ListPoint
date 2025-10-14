@@ -7,6 +7,7 @@
   - Fixed edit item modal lingering after item edit. Changed implementation to fetch updated list data and rebuild the list asynchronously, ensuring modal closes properly and items are correctly ordered within sections without page reload.
   - Fixed undo modal to show only unique items (most recent occurrence of each) with proper index handling for accurate restoration.
   - Added user-select: none styling to undo button to prevent text selection on right-click/long-press.
+  - Updated context menu positioning to display above the click/touch point (with 10px gap) to prevent user's fingers from blocking menu visibility. Menu falls back to below-click positioning if there's insufficient space above.
 
 ## Overview
 List Point is a minimalistic Flask-based web application designed for creating, managing, and sharing various types of lists. It incorporates social features, such as list discovery and collaboration, alongside robust user authentication and a clean, responsive user interface. The platform aims to provide a flexible and intuitive list-making experience, supporting both permanent item management and dynamic, restorable checklist templates. The business vision is to offer a streamlined list management solution with integrated social functionalities and a sustainable revenue model through subscriptions and advertising.

@@ -696,16 +696,33 @@ function showContextMenu(x, y, itemId, itemText) {
     const contextMenu = document.getElementById('context-menu');
     contextMenu.classList.remove('hidden');
     
+    // Position menu temporarily to get its dimensions
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
     
     const menuRect = contextMenu.getBoundingClientRect();
-    if (menuRect.right > window.innerWidth) {
-        contextMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+    
+    // Position menu above the click point with 10px gap
+    let menuTop = y - menuRect.height - 10;
+    let menuLeft = x;
+    
+    // Adjust if menu goes off the left edge
+    if (menuLeft < 10) {
+        menuLeft = 10;
     }
-    if (menuRect.bottom > window.innerHeight) {
-        contextMenu.style.top = `${window.innerHeight - menuRect.height - 10}px`;
+    
+    // Adjust if menu goes off the right edge
+    if (menuLeft + menuRect.width > window.innerWidth - 10) {
+        menuLeft = window.innerWidth - menuRect.width - 10;
     }
+    
+    // If menu goes above viewport, position it below the click point instead
+    if (menuTop < 10) {
+        menuTop = y + 10;
+    }
+    
+    contextMenu.style.left = `${menuLeft}px`;
+    contextMenu.style.top = `${menuTop}px`;
 }
 
 function showSectionContextMenu(x, y, sectionName) {
@@ -721,16 +738,33 @@ function showSectionContextMenu(x, y, sectionName) {
     const contextMenu = document.getElementById('context-menu');
     contextMenu.classList.remove('hidden');
     
+    // Position menu temporarily to get its dimensions
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
     
     const menuRect = contextMenu.getBoundingClientRect();
-    if (menuRect.right > window.innerWidth) {
-        contextMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+    
+    // Position menu above the click point with 10px gap
+    let menuTop = y - menuRect.height - 10;
+    let menuLeft = x;
+    
+    // Adjust if menu goes off the left edge
+    if (menuLeft < 10) {
+        menuLeft = 10;
     }
-    if (menuRect.bottom > window.innerHeight) {
-        contextMenu.style.top = `${window.innerHeight - menuRect.height - 10}px`;
+    
+    // Adjust if menu goes off the right edge
+    if (menuLeft + menuRect.width > window.innerWidth - 10) {
+        menuLeft = window.innerWidth - menuRect.width - 10;
     }
+    
+    // If menu goes above viewport, position it below the click point instead
+    if (menuTop < 10) {
+        menuTop = y + 10;
+    }
+    
+    contextMenu.style.left = `${menuLeft}px`;
+    contextMenu.style.top = `${menuTop}px`;
 }
 
 function hideContextMenu() {
