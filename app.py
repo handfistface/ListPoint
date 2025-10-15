@@ -781,7 +781,8 @@ def api_get_list(list_id):
             'text': item.get('text', ''),
             'checked': item.get('checked', False),
             'quantity': item.get('quantity', 1),
-            'section': item.get('section')
+            'section': item.get('section'),
+            'order': item.get('order')
         })
     
     empty_sections = list_doc.get('empty_sections', [])

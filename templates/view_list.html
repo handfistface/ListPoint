@@ -1750,7 +1750,9 @@ function rebuildItemsList(items, emptySections = []) {
     let html = '';
     
     sortedSections.forEach(sectionName => {
-        const sectionItems = sections[sectionName].sort((a, b) => a.text.localeCompare(b.text));
+        const sectionItems = isOrdered 
+            ? sections[sectionName].sort((a, b) => (a.order || 0) - (b.order || 0))
+            : sections[sectionName].sort((a, b) => a.text.localeCompare(b.text));
         const escapedSectionName = escapeHtml(sectionName);
         const jsSafeSectionName = escapeJs(sectionName);
         
@@ -1807,7 +1809,9 @@ function rebuildItemsList(items, emptySections = []) {
     });
     
     if (looseItems.length > 0) {
-        const sortedLooseItems = looseItems.sort((a, b) => a.text.localeCompare(b.text));
+        const sortedLooseItems = isOrdered
+            ? looseItems.sort((a, b) => (a.order || 0) - (b.order || 0))
+            : looseItems.sort((a, b) => a.text.localeCompare(b.text));
         
         html += `<div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">`;
         html += `<div class="space-y-2">`;
