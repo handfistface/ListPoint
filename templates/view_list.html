@@ -2730,6 +2730,7 @@ function handleTouchMove(e) {
     const touch = e.touches[0];
     const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
     const targetRow = elementAtPoint ? elementAtPoint.closest('.item-row') : null;
+    const sectionHeader = elementAtPoint ? elementAtPoint.closest('.section-header') : null;
     
     const allRows = document.querySelectorAll('.item-row');
     allRows.forEach(row => {
@@ -2738,7 +2739,16 @@ function handleTouchMove(e) {
         }
     });
     
-    if (targetRow && targetRow !== draggedItemElement) {
+    const allSectionHeaders = document.querySelectorAll('.section-header');
+    allSectionHeaders.forEach(header => {
+        header.style.backgroundColor = '';
+        header.style.border = '';
+    });
+    
+    if (sectionHeader) {
+        sectionHeader.style.backgroundColor = 'rgba(59, 130, 246, 0.5)';
+        sectionHeader.style.border = '2px solid rgba(59, 130, 246, 0.8)';
+    } else if (targetRow && targetRow !== draggedItemElement) {
         touchTargetElement = targetRow;
         targetRow.style.borderTop = '3px solid #3b82f6';
     }
@@ -2779,6 +2789,53 @@ async function handleTouchEnd(e) {
     allRows.forEach(row => {
         row.style.borderTop = '';
     });
+    
+    const allSectionHeaders = document.querySelectorAll('.section-header');
+    allSectionHeaders.forEach(header => {
+        header.style.backgroundColor = '';
+        header.style.border = '';
+    });
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const sectionHeader = elementBelow ? elementBelow.closest('.section-header') : null;
+    
+    if (sectionHeader) {
+        const sectionName = sectionHeader.getAttribute('data-section-name');
+        const itemId = draggedItemElement.getAttribute('data-item-id');
+        
+        const response = await fetch(`/api/lists/${listId}/sections`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                item_id: itemId,
+                section_name: sectionName
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showModal(`✓ Item moved to section "${sectionName}"`, 'success');
+            
+            const listResponse = await fetch(`/api/lists/${listId}`);
+            const listData = await listResponse.json();
+            
+            if (listData.success) {
+                rebuildItemsList(listData.items, listData.empty_sections || []);
+                reattachMoveEventListeners();
+            }
+        } else {
+            showModal(`✗ ${result.message}`, 'error');
+        }
+        
+        draggedItemElement = null;
+        touchTargetElement = null;
+        return;
+    }
     
     if (!touchTargetElement || draggedItemElement === touchTargetElement) {
         draggedItemElement = null;
