@@ -1,33 +1,7 @@
 # List Point Web App
 
-## Recent Changes
-- **October 15, 2025**:
-  - **Added dynamic number updates for ordered lists**: Item numbers now update immediately when items are reordered in move mode, providing instant visual feedback on both desktop and mobile devices.
-  - **Fixed mobile drag-and-drop for ordered lists**: Added comprehensive touch event handlers (touchstart, touchmove, touchend) to enable drag-and-drop reordering on mobile devices. Features include:
-    - Touch-based dragging with visual feedback (opacity changes, border highlights, scale transform)
-    - Auto-scroll functionality when dragging near screen edges for long lists
-    - Proper event cleanup to prevent conflicts with other touch interactions
-    - Maintains full desktop drag-and-drop functionality alongside mobile support
-  - **Added Ordered Lists Feature**: Users can now enable ordered lists in list settings, allowing manual item reordering without automatic alphabetization. Features include:
-    - "Enable Ordered Lists" checkbox in list settings to activate ordered mode
-    - "Show Numbering" option to display sequential numbers (1., 2., 3., etc.) next to items
-    - "Move Item" context menu option (only visible for ordered lists) to enter drag-and-drop mode
-    - Drag-and-drop interface with visual feedback (opacity changes, border highlights) for easy reordering
-    - Floating "Exit Move Mode" button that stays visible during scrolling
-    - Backend support for persisting item order via new `order` field and `/api/lists/<list_id>/items/reorder` API endpoint
-    - Items in ordered lists maintain manual order; no automatic alphabetical sorting
-- **October 14, 2025**: 
-  - **Fixed critical bug**: Resolved "Error adding item" failures when adding items to lists with sections. The addItem() function was attempting manual alphabetical insertion which broke when sections were present. Updated to use rebuildItemsList() after adding items (matching the addItemToSection() approach), ensuring backend's proper section sorting is always respected.
-  - **Added "Move to Section" feature**: Users can now move items between sections or to loose items using the right-click/long-press context menu. The modal displays all available sections (excluding the current section) and an option to remove the item from its section (move to loose items). Items can be moved from any section to another, or from loose items to a section.
-  - Fixed undo functionality bug where deleted items were not being restored to the list without a page reload. Created missing `/api/lists/<list_id>` JSON API endpoint that returns list data with items.
-  - Fixed context menu bug where right-click/long-press dialog was appearing during regular list interactions. Added event listener guard to prevent duplicate listeners from being attached when list is rebuilt.
-  - Fixed edit item modal lingering after item edit. Changed implementation to fetch updated list data and rebuild the list asynchronously, ensuring modal closes properly and items are correctly ordered within sections without page reload.
-  - Fixed undo modal to show only unique items (most recent occurrence of each) with proper index handling for accurate restoration.
-  - Added user-select: none styling to undo button to prevent text selection on right-click/long-press.
-  - Updated context menu positioning to display above the click/touch point (with 10px gap) to prevent user's fingers from blocking menu visibility. Menu falls back to below-click positioning if there's insufficient space above.
-
 ## Overview
-List Point is a minimalistic Flask-based web application designed for creating, managing, and sharing various types of lists. It incorporates social features, such as list discovery and collaboration, alongside robust user authentication and a clean, responsive user interface. The platform aims to provide a flexible and intuitive list-making experience, supporting both permanent item management and dynamic, restorable checklist templates. The business vision is to offer a streamlined list management solution with integrated social functionalities and a sustainable revenue model through subscriptions and advertising.
+List Point is a minimalistic Flask-based web application for creating, managing, and sharing various types of lists. It offers social features like list discovery and collaboration, robust user authentication, and a clean, responsive UI. The platform aims to provide an intuitive list-making experience supporting permanent item management and dynamic, restorable checklist templates. The business vision focuses on a streamlined list management solution with integrated social functionalities and a sustainable revenue model through subscriptions and advertising.
 
 ## User Preferences
 I prefer iterative development and want to be involved in key decision-making processes. Please ask for my approval before implementing major changes or new features. I appreciate clear, concise explanations and prefer a modular, well-structured codebase. I am open to suggestions for improvements but want to maintain a focus on core functionality and user experience.
@@ -35,57 +9,40 @@ I prefer iterative development and want to be involved in key decision-making pr
 ## System Architecture
 
 ### UI/UX Decisions
-The application features a clean, minimalistic design with a responsive interface built using TailwindCSS. It supports both dark (default) and light modes, with theme preferences persisted. Navigation is streamlined, grouping list management controls for intuitive access. Image uploads incorporate interactive cropping, compression, and visual feedback for an enhanced user experience.
+The application features a clean, minimalistic design with a responsive interface built using TailwindCSS, supporting both dark (default) and light modes. Navigation is streamlined, and image uploads incorporate interactive cropping, compression, and visual feedback.
 
 ### Technical Implementations
 - **Authentication**: Flask-Login handles user registration, login, session management, and password hashing using Werkzeug.
-- **Admin Interface**: Secure admin panel for user management. Admins can view all users (excluding password hashes), edit user fields (except passwords), manage roles and groups, and toggle admin status. All admin routes are protected with authorization checks. Access to the admin panel is shown conditionally in the navigation menu based on the user's admin status.
-- **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" which act as templates. Check Lists have "Check Off Mode" for temporary checking and "Edit Mode" for permanent template modification. Items are automatically sorted alphabetically. Lists now support sections for better organization (implemented October 14, 2025).
-- **Item Management**: Includes features like click-to-delete, right-click/long-press to edit items, autocomplete suggestions, and an undo system for deleted items.
-- **List Sections**: Comprehensive section management system allows users to organize items within lists. Sections are created by right-clicking/long-pressing items and moving them into named sections. Sections appear alphabetically at the top with a striped visual pattern, while loose (unsectioned) items appear at the bottom with a separator. Section headers have their own context menu for rename and delete operations. Each section has a dedicated add button with autocomplete positioned above the input to prevent mobile keyboard interference (implemented October 14, 2025).
-- **Social Features**: Users can browse, search, and filter public lists, favorite lists, and invite collaborators. Collaborative lists allow shared item management (add, delete, adjust quantity) for both owners and collaborators.
-- **Image Handling**: Client-side image cropping and compression (up to 500KB) with a custom file picker and visual feedback. Images are converted to JPEG for optimal compression.
-- **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal. Ad display logic intelligently handles ad loading and ensures no whitespace is shown if ads fail to load.
-- **SEO Optimization**: Comprehensive SEO implementation including optimized title tags, unique meta descriptions for all pages, Open Graph tags for social sharing, Twitter Card tags, Schema.org structured data (WebApplication), XML sitemap (accessible at /sitemap.xml), robots.txt configuration, and descriptive alt text for all images. Targets keywords: "online list maker", "shared list app", "collaborative task lists", "free list organizer".
-
-### Feature Specifications
-- **User Accounts**: Registration, login, session management.
-- **Admin Management**: Admin panel for viewing and managing all users, editing user fields, managing roles and groups. Admin access is role-based with secure route protection. Admins can also manage orphaned lists (lists owned by "None" user) created when parent lists are deleted.
-- **List Creation**: Name, thumbnail, tags. All lists are public by default (as of October 11, 2025).
-- **List Types**: Standard (permanent) and Check Lists (template-based with two modes).
-- **Item Operations**: Add, delete, edit (via right-click or long-press), check/uncheck (for Check Lists), undo, organize into sections, move items between sections.
-- **Section Operations**: Create sections from items, rename sections, delete sections (with confirmation), add items directly to sections with autocomplete support, move items to/from sections via context menu.
-- **Discovery**: Browse, search, filter lists by tags. Infinite scroll implementation loads 10 lists at a time, sorted by most recently updated, with automatic preloading when user scrolls through 5 items (implemented October 11, 2025). Last updated time is displayed on all list cards showing when the list was last modified.
-- **Last Updated Time Display**: All list cards (on index and explore pages) display the last update time in a user-friendly format: relative time for recent updates (e.g., "2h ago", "5m ago") and absolute date/time (MM/DD/YYYY HH:MM) for updates older than 7 days. The timestamp updates automatically when items are added, removed, quantity is adjusted, or the list is edited (implemented October 11, 2025).
-- **Collaboration**: Invite/remove collaborators, shared list access and full item editing capabilities (add, delete, adjust quantity) for collaborators.
-- **Favorites**: Mark/unmark lists as favorites for quick access.
-- **List Cloning**: Users can clone any accessible list to create their own copy with all items. Cloned lists track their parent (original) list and display genealogy information. Clone count shown with 🌿 emoji on list cards. Parents display links to their children with owner information in a modal.
-- **Theming**: Dark/Light mode toggle with persistence.
-- **Image Uploads**: Interactive cropping, compression, aspect ratio control (160/300).
-- **Footer Pages**: About Us page describing the platform's mission, features, and solo developer background. Contact Us page with email contact information (kirschnerjohn10@gmail.com).
+- **Admin Interface**: A secure admin panel for user management (view, edit fields, manage roles/groups/admin status) and orphaned list management.
+- **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" as templates. Check Lists have "Check Off Mode" and "Edit Mode." Lists support alphabetical sections and manual ordering for ordered lists. All lists are public by default.
+- **Item Management**: Features click-to-delete, right-click/long-press to edit, autocomplete suggestions, and an undo system for deleted items. Items can be moved between sections or to loose items.
+- **List Sections**: Organize items into sections with visual distinction. Sections have their own context menu for rename and delete. Items can be added directly to sections.
+- **Ordered Lists**: Allows manual item reordering via drag-and-drop, with numbering display and persistence of item order.
+- **Social Features**: Browse, search, filter public lists; favorite lists; invite collaborators with shared item management.
+- **Image Handling**: Client-side image cropping and compression (up to 500KB) to JPEG.
+- **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal.
+- **SEO Optimization**: Comprehensive SEO including title tags, meta descriptions, Open Graph, Twitter Cards, Schema.org, XML sitemap, robots.txt, and descriptive alt text.
 
 ### System Design Choices
-- Items are automatically sorted alphabetically upon addition, unless the list has "Ordered Lists" enabled. When sections exist, items within each section are sorted alphabetically, and sections themselves are sorted alphabetically at the top of the list, with loose items appearing at the bottom. For ordered lists, manual item order is preserved via an `order` field, and alphabetical sorting is disabled.
-- Check lists store an `original_items` snapshot for restoration.
-- `items` in check lists have a `checked` field and an optional `section` field for organization.
-- **List Sections Storage**: Sections are stored as a field (`section`) on each item rather than as separate entities. Items with a `section` field are grouped and displayed together with visual distinction (striped pattern). Loose items (section=null) appear at the bottom with a horizontal separator.
-- Image cropping uses a canvas-based interface, maintaining a 160px height / 300px width aspect ratio, with touch and mouse event support.
-- Autocomplete cache tracks user's item history for suggestions. When items are edited, the old autocomplete entry is replaced with the new text (not duplicated).
-- Context menus appear on right-click (desktop) or long-press 500ms (mobile) with haptic feedback. Item context menu offers "Copy Text", "Edit Item", "Create Section", and "Move to Section" options. The "Move to Section" feature allows moving items between sections or to loose items via a modal that shows all available sections. Section headers have their own context menu offering "Rename Section" and "Delete Section" options.
-- Context menu automatically positions itself to stay within viewport boundaries and matches the site's theme.
-- Copy functionality uses Clipboard API with fallback for older browsers.
-- Edit modal is a custom themed component matching the site's dark/light theme with keyboard shortcuts (Enter to save, Escape to cancel).
-- List items have text selection disabled (user-select: none) to prevent system dialogs from interfering with custom context menu.
-- CSRF protection is enabled on all forms.
-- MongoDB indexes are used for performance on frequently queried fields.
-- **List Visibility**: All lists are enforced as public. The visibility UI control is hidden from users, and backend code ensures `is_public=True` for all list creation and editing operations. This was implemented on October 11, 2025 to simplify the platform and promote list sharing.
-- **List Cloning & Genealogy**: Lists track parent-child relationships via `parent_id` and `clone_count` fields. When a parent list is deleted, children are reassigned to their grandparent. If no grandparent exists, an orphan copy owned by "None" user is created to preserve genealogy. Admins have special permissions to manage orphaned lists (implemented October 12, 2025).
-- **Permission System**: Custom `can_manage_list()` helper function checks if a user can manage a list based on ownership, collaboration status, or admin privileges for orphaned lists. This ensures admins can maintain orphaned lists while regular users cannot access them.
+- Items are alphabetically sorted within sections (which are also alphabetically sorted) or manually ordered if "Ordered Lists" is enabled. Loose items appear at the bottom.
+- Check lists store `original_items` for restoration and `checked` status.
+- Sections are stored as a `section` field on items.
+- Image cropping uses a canvas-based interface with touch/mouse support, maintaining a 160px height / 300px width aspect ratio.
+- Autocomplete caches user item history.
+- Context menus (right-click/long-press) for items and sections position dynamically within the viewport and match the theme.
+- Clipboard API is used for copy functionality.
+- Custom-themed edit modals support keyboard shortcuts.
+- Text selection is disabled on list items to prevent interference with custom context menus.
+- CSRF protection is enabled.
+- MongoDB indexes are used for performance.
+- All lists are public (`is_public=True`).
+- **List Cloning & Genealogy**: Lists track parent-child relationships. Deleting a parent reassigns children to a grandparent or creates an orphaned copy managed by admins.
+- **Permission System**: `can_manage_list()` helper function manages list access based on ownership, collaboration, or admin privileges for orphaned lists.
 
 ## External Dependencies
-- **Database**: MongoDB (remote instance via MongoDB Atlas)
-- **Payment Processing**: Stripe (for subscriptions and payment management)
-- **Advertising**: Google AdSense (for displaying ads)
+- **Database**: MongoDB (remote via MongoDB Atlas)
+- **Payment Processing**: Stripe
+- **Advertising**: Google AdSense
 - **Backend Framework**: Flask
 - **Authentication**: Flask-Login
 - **Forms**: Flask-WTF
@@ -93,4 +50,4 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Password Hashing**: Werkzeug
 - **Image Processing (Python)**: Pillow
 - **Frontend Styling**: TailwindCSS (CDN)
-- **Client-side Scripting**: Vanilla JavaScript, Fetch API (for AJAX)
+- **Client-side Scripting**: Vanilla JavaScript, Fetch API
