@@ -2825,7 +2825,12 @@ async function handleLooseItemsDrop(e) {
 function handleLooseItemsTouchMove(e) {
     if (!moveModeActive || !draggedItemElement) return;
     
+    if (e.target.closest('.item-row')) {
+        return;
+    }
+    
     e.preventDefault();
+    e.stopPropagation();
     
     const touch = e.touches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -2845,6 +2850,13 @@ function handleLooseItemsTouchMove(e) {
 
 async function handleLooseItemsTouchEnd(e) {
     if (!moveModeActive || !draggedItemElement) return;
+    
+    if (e.target.closest('.item-row')) {
+        return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
     
     const touch = e.changedTouches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
