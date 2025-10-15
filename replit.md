@@ -2,6 +2,11 @@
 
 ## Recent Changes
 - **October 15, 2025**:
+  - **Fixed mobile drag-and-drop for ordered lists**: Added comprehensive touch event handlers (touchstart, touchmove, touchend) to enable drag-and-drop reordering on mobile devices. Features include:
+    - Touch-based dragging with visual feedback (opacity changes, border highlights, scale transform)
+    - Auto-scroll functionality when dragging near screen edges for long lists
+    - Proper event cleanup to prevent conflicts with other touch interactions
+    - Maintains full desktop drag-and-drop functionality alongside mobile support
   - **Added Ordered Lists Feature**: Users can now enable ordered lists in list settings, allowing manual item reordering without automatic alphabetization. Features include:
     - "Enable Ordered Lists" checkbox in list settings to activate ordered mode
     - "Show Numbering" option to display sequential numbers (1., 2., 3., etc.) next to items
