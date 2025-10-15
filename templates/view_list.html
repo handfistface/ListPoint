@@ -1818,52 +1818,63 @@ function rebuildItemsList(items, emptySections = []) {
         html += `</div></div>`;
     });
     
-    if (looseItems.length > 0) {
+    const hasSections = Object.keys(sections).length > 0;
+    
+    if (looseItems.length > 0 || (hasSections && isOrdered)) {
         const sortedLooseItems = isOrdered
             ? looseItems.sort((a, b) => (a.order || 0) - (b.order || 0))
             : looseItems.sort((a, b) => a.text.localeCompare(b.text));
         
-        html += `<div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">`;
-        html += `<div class="space-y-2">`;
+        html += `<div id="loose-items-drop-zone" class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color); transition: all 0.2s ease;">`;
         
-        sortedLooseItems.forEach((item, index) => {
-            const checkedClass = item.checked ? 'opacity-50' : '';
-            const lineThrough = item.checked ? 'line-through' : '';
-            const checkboxHidden = !isEthereal ? 'hidden' : '';
-            const checked = item.checked ? 'checked' : '';
-            const quantityVisible = item.quantity > 1 ? '' : 'invisible';
-            const escapedItemText = escapeHtml(item.text);
-            const jsSafeItemId = escapeJs(item._id);
-            
-            html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
-            html += `<div class="flex items-center gap-3 flex-1">`;
-            html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
-            
-            if (isOrdered && showNumbering) {
-                html += `<span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">${index + 1}.</span>`;
-            }
-            
-            html += `<span class="item-text ${lineThrough}">${escapedItemText}</span>`;
-            
-            if (item.quantity > 1) {
-                html += `<span class="text-sm" style="color: var(--text-secondary);">x${escapeHtml(String(item.quantity))}</span>`;
-            }
-            
+        if (looseItems.length === 0 && hasSections && isOrdered) {
+            html += `<div class="text-center py-6" style="color: var(--text-secondary);">`;
+            html += `<p class="text-sm">Drop items here to remove from sections</p>`;
             html += `</div>`;
+        } else {
+            html += `<div class="space-y-2">`;
             
-            if (isOwner || isCollaborator) {
-                const decreaseHidden = isEthereal ? 'hidden' : '';
-                const increaseHidden = isEthereal ? 'hidden' : '';
-                html += `<div class="flex items-center gap-2">`;
-                html += `<button class="quantity-btn ${decreaseHidden} ${quantityVisible} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', -1, event)" data-action="decrease">−</button>`;
-                html += `<button class="quantity-btn ${increaseHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', 1, event)" data-action="increase">+</button>`;
+            sortedLooseItems.forEach((item, index) => {
+                const checkedClass = item.checked ? 'opacity-50' : '';
+                const lineThrough = item.checked ? 'line-through' : '';
+                const checkboxHidden = !isEthereal ? 'hidden' : '';
+                const checked = item.checked ? 'checked' : '';
+                const quantityVisible = item.quantity > 1 ? '' : 'invisible';
+                const escapedItemText = escapeHtml(item.text);
+                const jsSafeItemId = escapeJs(item._id);
+                
+                html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
+                html += `<div class="flex items-center gap-3 flex-1">`;
+                html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
+                
+                if (isOrdered && showNumbering) {
+                    html += `<span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">${index + 1}.</span>`;
+                }
+                
+                html += `<span class="item-text ${lineThrough}">${escapedItemText}</span>`;
+                
+                if (item.quantity > 1) {
+                    html += `<span class="text-sm" style="color: var(--text-secondary);">x${escapeHtml(String(item.quantity))}</span>`;
+                }
+                
                 html += `</div>`;
-            }
+                
+                if (isOwner || isCollaborator) {
+                    const decreaseHidden = isEthereal ? 'hidden' : '';
+                    const increaseHidden = isEthereal ? 'hidden' : '';
+                    html += `<div class="flex items-center gap-2">`;
+                    html += `<button class="quantity-btn ${decreaseHidden} ${quantityVisible} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', -1, event)" data-action="decrease">−</button>`;
+                    html += `<button class="quantity-btn ${increaseHidden} text-lg px-2 hover:opacity-70" onclick="adjustQuantity('${jsSafeItemId}', 1, event)" data-action="increase">+</button>`;
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            });
             
             html += `</div>`;
-        });
+        }
         
-        html += `</div></div>`;
+        html += `</div>`;
     }
     
     document.getElementById('items-list').innerHTML = html;
