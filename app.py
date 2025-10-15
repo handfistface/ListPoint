@@ -269,6 +269,9 @@ def create_list():
     if form.validate_on_submit():
         tags = [tag.strip() for tag in form.tags.data.split(',') if tag.strip()]
         
+        is_ordered = request.form.get('is_ordered') == 'true'
+        show_numbering = request.form.get('show_numbering') == 'true'
+        
         thumbnail_url = ''
         if 'thumbnail' in request.files:
             file = request.files['thumbnail']
@@ -295,7 +298,9 @@ def create_list():
             thumbnail_url=thumbnail_url,
             is_public=True,
             is_ethereal=form.is_ethereal.data,
-            tags=tags
+            tags=tags,
+            is_ordered=is_ordered,
+            show_numbering=show_numbering
         )
         
         flash('List created successfully!', 'success')

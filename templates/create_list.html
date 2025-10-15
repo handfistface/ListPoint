@@ -51,6 +51,25 @@
             Check lists can be restored to their original state - perfect for reusable templates like packing lists or checklists.
         </p>
         
+        <div class="border-t pt-4" style="border-color: var(--border-color);">
+            <h3 class="font-semibold mb-3">List Settings</h3>
+            <input type="hidden" id="is-ordered-hidden" name="is_ordered" value="false">
+            <input type="hidden" id="show-numbering-hidden" name="show_numbering" value="false">
+            <div class="space-y-3">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="is-ordered-checkbox" class="w-4 h-4" onchange="updateOrderedSettings()">
+                    <span>Enable Ordered Lists</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer ml-6" id="show-numbering-container" style="display: none;">
+                    <input type="checkbox" id="show-numbering-checkbox" class="w-4 h-4" onchange="updateOrderedSettings()">
+                    <span>Show Numbering</span>
+                </label>
+                <p class="text-sm ml-6" style="color: var(--text-secondary);">
+                    Ordered lists allow you to manually arrange items. Items will not be alphabetized automatically.
+                </p>
+            </div>
+        </div>
+        
         <div class="flex space-x-4">
             <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
                 Create List
@@ -85,6 +104,25 @@
 
 {% block extra_js %}
 <script>
+    function updateOrderedSettings() {
+        const isOrderedCheckbox = document.getElementById('is-ordered-checkbox');
+        const showNumberingCheckbox = document.getElementById('show-numbering-checkbox');
+        const showNumberingContainer = document.getElementById('show-numbering-container');
+        const isOrderedHidden = document.getElementById('is-ordered-hidden');
+        const showNumberingHidden = document.getElementById('show-numbering-hidden');
+        
+        isOrderedHidden.value = isOrderedCheckbox.checked ? 'true' : 'false';
+        showNumberingHidden.value = showNumberingCheckbox.checked ? 'true' : 'false';
+        
+        if (isOrderedCheckbox.checked) {
+            showNumberingContainer.style.display = '';
+        } else {
+            showNumberingContainer.style.display = 'none';
+            showNumberingCheckbox.checked = false;
+            showNumberingHidden.value = 'false';
+        }
+    }
+
     const thumbnailInput = document.getElementById('thumbnail-input');
     const fileNameSpan = document.getElementById('file-name');
     const maxSize = 500 * 1024; // 500KB in bytes
