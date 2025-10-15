@@ -51,13 +51,15 @@
         
         <div class="border-t pt-4" style="border-color: var(--border-color);">
             <h3 class="font-semibold mb-3">List Settings</h3>
+            <input type="hidden" id="is-ordered-hidden" name="is_ordered" value="{{ 'true' if current_list.is_ordered else 'false' }}">
+            <input type="hidden" id="show-numbering-hidden" name="show_numbering" value="{{ 'true' if current_list.show_numbering else 'false' }}">
             <div class="space-y-3">
                 <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" id="is-ordered-checkbox" class="w-4 h-4" {% if current_list.is_ordered %}checked{% endif %}>
+                    <input type="checkbox" id="is-ordered-checkbox" class="w-4 h-4" {% if current_list.is_ordered %}checked{% endif %} onchange="updateOrderedSettings()">
                     <span>Enable Ordered Lists</span>
                 </label>
                 <label class="flex items-center space-x-2 cursor-pointer ml-6" id="show-numbering-container" {% if not current_list.is_ordered %}style="display: none;"{% endif %}>
-                    <input type="checkbox" id="show-numbering-checkbox" class="w-4 h-4" {% if current_list.show_numbering %}checked{% endif %}>
+                    <input type="checkbox" id="show-numbering-checkbox" class="w-4 h-4" {% if current_list.show_numbering %}checked{% endif %} onchange="updateOrderedSettings()">
                     <span>Show Numbering</span>
                 </label>
                 <p class="text-sm ml-6" style="color: var(--text-secondary);">
@@ -148,6 +150,25 @@
 {% block extra_js %}
 <script>
     const listId = '{{ current_list._id|string }}';
+    
+    function updateOrderedSettings() {
+        const isOrderedCheckbox = document.getElementById('is-ordered-checkbox');
+        const showNumberingCheckbox = document.getElementById('show-numbering-checkbox');
+        const showNumberingContainer = document.getElementById('show-numbering-container');
+        const isOrderedHidden = document.getElementById('is-ordered-hidden');
+        const showNumberingHidden = document.getElementById('show-numbering-hidden');
+        
+        isOrderedHidden.value = isOrderedCheckbox.checked ? 'true' : 'false';
+        showNumberingHidden.value = showNumberingCheckbox.checked ? 'true' : 'false';
+        
+        if (isOrderedCheckbox.checked) {
+            showNumberingContainer.style.display = '';
+        } else {
+            showNumberingContainer.style.display = 'none';
+            showNumberingCheckbox.checked = false;
+            showNumberingHidden.value = 'false';
+        }
+    }
     
     let searchTimeout;
     const searchInput = document.getElementById('collaborator-search');
