@@ -207,6 +207,23 @@
                     </div>
                 {% endfor %}
                 
+                {% for empty_section in current_list.get('empty_sections', []) %}
+                    {% if empty_section not in sections %}
+                    <div class="section-group mb-4" data-section-name="{{ empty_section }}">
+                        <div class="section-header flex items-center justify-between p-3 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-section-name="{{ empty_section }}">
+                            <span>{{ empty_section }}</span>
+                            {% if is_owner or is_collaborator %}
+                                <button onclick="showSectionAddModal('{{ empty_section }}', event)" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                                    ➕
+                                </button>
+                            {% endif %}
+                        </div>
+                        <div class="section-items space-y-2 pt-2">
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                
                 {% if loose_items %}
                     <div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">
                         <div class="space-y-2">
@@ -272,6 +289,13 @@
             style="color: var(--text-primary);"
         >
             📁 Create Section
+        </button>
+        <button 
+            onclick="promoteToSection()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            ⬆️ Promote to Section
         </button>
         <button 
             id="move-to-section-btn"
@@ -1655,6 +1679,42 @@ async function saveNewSection() {
     createSectionItemId = null;
 }
 
+async function promoteToSection() {
+    if (!contextMenuItemId || !contextMenuItemText) return;
+    
+    const itemId = contextMenuItemId;
+    const sectionName = contextMenuItemText;
+    
+    hideContextMenu();
+    
+    const response = await fetch(`/api/lists/${listId}/promote-to-section`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            item_id: itemId,
+            section_name: sectionName
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal(`✓ Item promoted to section "${sectionName}"`, 'success');
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -1665,7 +1725,7 @@ function escapeJs(text) {
     return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
-function rebuildItemsList(items) {
+function rebuildItemsList(items, emptySections = []) {
     const sections = {};
     const looseItems = [];
     
@@ -1677,6 +1737,12 @@ function rebuildItemsList(items) {
             sections[item.section].push(item);
         } else {
             looseItems.push(item);
+        }
+    });
+    
+    emptySections.forEach(sectionName => {
+        if (!sections[sectionName]) {
+            sections[sectionName] = [];
         }
     });
     

@@ -566,9 +566,17 @@ class Database:
         
         sorted_items = self._sort_items_with_sections(items)
         
+        empty_sections = list_doc.get('empty_sections', [])
+        if section_name in empty_sections:
+            empty_sections.remove(section_name)
+        
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
-            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+            {'$set': {
+                'items': sorted_items,
+                'empty_sections': empty_sections,
+                'updated_at': datetime.utcnow()
+            }}
         )
         
         return True, 'Section created successfully'
@@ -613,6 +621,12 @@ class Database:
                 item['section'] = new_section_name
                 updated = True
         
+        empty_sections = list_doc.get('empty_sections', [])
+        if old_section_name in empty_sections:
+            empty_sections.remove(old_section_name)
+            empty_sections.append(new_section_name)
+            updated = True
+        
         if not updated:
             return False, 'Section not found'
         
@@ -620,7 +634,11 @@ class Database:
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
-            {'$set': {'items': sorted_items, 'updated_at': datetime.utcnow()}}
+            {'$set': {
+                'items': sorted_items,
+                'empty_sections': empty_sections,
+                'updated_at': datetime.utcnow()
+            }}
         )
         
         return True, 'Section renamed successfully'
@@ -633,15 +651,58 @@ class Database:
         items = list_doc.get('items', [])
         filtered_items = [item for item in items if item.get('section') != section_name]
         
-        if len(filtered_items) == len(items):
+        empty_sections = list_doc.get('empty_sections', [])
+        section_existed = len(filtered_items) != len(items) or section_name in empty_sections
+        
+        if not section_existed:
             return False, 'Section not found'
+        
+        if section_name in empty_sections:
+            empty_sections.remove(section_name)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
-            {'$set': {'items': filtered_items, 'updated_at': datetime.utcnow()}}
+            {'$set': {
+                'items': filtered_items,
+                'empty_sections': empty_sections,
+                'updated_at': datetime.utcnow()
+            }}
         )
         
         return True, 'Section deleted successfully'
+    
+    def promote_item_to_section(self, list_id, item_id, section_name):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        items = list_doc.get('items', [])
+        item_found = False
+        
+        filtered_items = []
+        for item in items:
+            if str(item['_id']) == str(item_id):
+                item_found = True
+            else:
+                filtered_items.append(item)
+        
+        if not item_found:
+            return False, 'Item not found'
+        
+        empty_sections = list_doc.get('empty_sections', [])
+        if section_name not in empty_sections:
+            empty_sections.append(section_name)
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {
+                'items': filtered_items,
+                'empty_sections': empty_sections,
+                'updated_at': datetime.utcnow()
+            }}
+        )
+        
+        return True, f'Item promoted to section "{section_name}"'
     
     def get_sections(self, list_id):
         list_doc = self.get_list_by_id(list_id)
@@ -652,6 +713,10 @@ class Database:
         for item in list_doc.get('items', []):
             if item.get('section'):
                 sections.add(item['section'])
+        
+        empty_sections = list_doc.get('empty_sections', [])
+        for section in empty_sections:
+            sections.add(section)
         
         return sorted(list(sections))
     

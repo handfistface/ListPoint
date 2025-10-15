@@ -687,6 +687,24 @@ def delete_section(list_id, section_name):
     success, message = db.delete_section(list_id, section_name)
     return jsonify({'success': success, 'message': message})
 
+@app.route('/api/lists/<list_id>/promote-to-section', methods=['POST'])
+@login_required
+def promote_to_section(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    
+    if not can_manage_list(list_doc, check_collaborator=True):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    item_id = data.get('item_id')
+    section_name = data.get('section_name', '').strip()
+    
+    if not item_id or not section_name:
+        return jsonify({'success': False, 'message': 'Item ID and section name are required'}), 400
+    
+    success, message = db.promote_item_to_section(list_id, item_id, section_name)
+    return jsonify({'success': success, 'message': message})
+
 @app.route('/api/lists/<list_id>/sections', methods=['GET'])
 def get_sections(list_id):
     list_doc = db.get_list_by_id(list_id)
@@ -766,7 +784,9 @@ def api_get_list(list_id):
             'section': item.get('section')
         })
     
-    return jsonify({'success': True, 'items': items_result})
+    empty_sections = list_doc.get('empty_sections', [])
+    
+    return jsonify({'success': True, 'items': items_result, 'empty_sections': empty_sections})
 
 @app.route('/api/explore')
 def api_explore():
