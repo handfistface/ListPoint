@@ -2361,6 +2361,17 @@ function enterMoveMode() {
         header.addEventListener('touchend', handleSectionTouchEnd, { passive: false });
     });
     
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.addEventListener('dragover', handleLooseItemsDragOver);
+        looseItemsZone.addEventListener('drop', handleLooseItemsDrop);
+        looseItemsZone.addEventListener('dragleave', handleLooseItemsDragLeave);
+        looseItemsZone.addEventListener('dragenter', handleLooseItemsDragEnter);
+        
+        looseItemsZone.addEventListener('touchmove', handleLooseItemsTouchMove, { passive: false });
+        looseItemsZone.addEventListener('touchend', handleLooseItemsTouchEnd, { passive: false });
+    }
+    
     showModal('✓ Move mode activated - Drag items to reorder or move to sections', 'success');
 }
 
@@ -2406,6 +2417,18 @@ function exitMoveMode() {
         header.removeEventListener('touchmove', handleSectionTouchMove);
         header.removeEventListener('touchend', handleSectionTouchEnd);
     });
+    
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.style.backgroundColor = '';
+        looseItemsZone.style.border = '';
+        looseItemsZone.removeEventListener('dragover', handleLooseItemsDragOver);
+        looseItemsZone.removeEventListener('drop', handleLooseItemsDrop);
+        looseItemsZone.removeEventListener('dragleave', handleLooseItemsDragLeave);
+        looseItemsZone.removeEventListener('dragenter', handleLooseItemsDragEnter);
+        looseItemsZone.removeEventListener('touchmove', handleLooseItemsTouchMove);
+        looseItemsZone.removeEventListener('touchend', handleLooseItemsTouchEnd);
+    }
     
     if (dragPlaceholder) {
         dragPlaceholder.remove();
@@ -2658,7 +2681,17 @@ function reattachMoveEventListeners() {
         header.addEventListener('touchmove', handleSectionTouchMove, { passive: false });
         header.addEventListener('touchend', handleSectionTouchEnd, { passive: false });
     });
-}
+    
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.addEventListener('dragover', handleLooseItemsDragOver);
+        looseItemsZone.addEventListener('drop', handleLooseItemsDrop);
+        looseItemsZone.addEventListener('dragleave', handleLooseItemsDragLeave);
+        looseItemsZone.addEventListener('dragenter', handleLooseItemsDragEnter);
+        
+        looseItemsZone.addEventListener('touchmove', handleLooseItemsTouchMove, { passive: false });
+        looseItemsZone.addEventListener('touchend', handleLooseItemsTouchEnd, { passive: false });
+    }
 
 async function handleSectionTouchEnd(e) {
     if (!moveModeActive || !draggedItemElement) return;
@@ -2693,6 +2726,155 @@ async function handleSectionTouchEnd(e) {
         
         if (result.success) {
             showModal(`✓ Item moved to section "${sectionName}"`, 'success');
+            
+            const listResponse = await fetch(`/api/lists/${listId}`);
+            const listData = await listResponse.json();
+            
+            if (listData.success) {
+                rebuildItemsList(listData.items, listData.empty_sections || []);
+                reattachMoveEventListeners();
+            }
+        } else {
+            showModal(`✗ ${result.message}`, 'error');
+        }
+    }
+    
+    if (draggedItemElement) {
+        draggedItemElement.style.opacity = '1';
+        draggedItemElement.style.transform = '';
+    }
+    
+    draggedItemElement = null;
+}
+
+function handleLooseItemsDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+        looseItemsZone.style.border = '3px solid rgba(59, 130, 246, 0.8)';
+    }
+    
+    return false;
+}
+
+function handleLooseItemsDragEnter(e) {
+    e.preventDefault();
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+        looseItemsZone.style.border = '3px solid rgba(59, 130, 246, 0.8)';
+    }
+}
+
+function handleLooseItemsDragLeave(e) {
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (looseItemsZone) {
+        looseItemsZone.style.backgroundColor = '';
+        looseItemsZone.style.border = '';
+    }
+}
+
+async function handleLooseItemsDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const looseItemsZone = document.getElementById('loose-items-drop-zone');
+    if (!looseItemsZone || !draggedItemElement) {
+        return false;
+    }
+    
+    looseItemsZone.style.backgroundColor = '';
+    looseItemsZone.style.border = '';
+    
+    const itemId = draggedItemElement.getAttribute('data-item-id');
+    
+    const response = await fetch(`/api/lists/${listId}/sections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            item_id: itemId,
+            section_name: ''
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Item moved to loose items', 'success');
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+            reattachMoveEventListeners();
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    return false;
+}
+
+function handleLooseItemsTouchMove(e) {
+    if (!moveModeActive || !draggedItemElement) return;
+    
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const looseItemsZone = elementBelow ? elementBelow.closest('#loose-items-drop-zone') : null;
+    
+    const zone = document.getElementById('loose-items-drop-zone');
+    if (zone) {
+        if (looseItemsZone) {
+            zone.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+            zone.style.border = '3px solid rgba(59, 130, 246, 0.8)';
+        } else {
+            zone.style.backgroundColor = '';
+            zone.style.border = '';
+        }
+    }
+}
+
+async function handleLooseItemsTouchEnd(e) {
+    if (!moveModeActive || !draggedItemElement) return;
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const looseItemsZone = elementBelow ? elementBelow.closest('#loose-items-drop-zone') : null;
+    
+    const zone = document.getElementById('loose-items-drop-zone');
+    if (zone) {
+        zone.style.backgroundColor = '';
+        zone.style.border = '';
+    }
+    
+    if (looseItemsZone) {
+        const itemId = draggedItemElement.getAttribute('data-item-id');
+        
+        const response = await fetch(`/api/lists/${listId}/sections`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                item_id: itemId,
+                section_name: ''
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showModal('✓ Item moved to loose items', 'success');
             
             const listResponse = await fetch(`/api/lists/${listId}`);
             const listData = await listResponse.json();
