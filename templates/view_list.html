@@ -165,7 +165,6 @@
                     {% endif %}
                 {% endfor %}
                 
-                {% set item_counter = namespace(value=0) %}
                 {% for section_name in sections.keys()|sort %}
                     <div class="section-group mb-4" data-section-name="{{ section_name }}">
                         <div class="section-header flex items-center justify-between p-3 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-section-name="{{ section_name }}">
@@ -178,7 +177,6 @@
                         </div>
                         <div class="section-items space-y-2 pt-2">
                             {% for item in sections[section_name] %}
-                                {% set item_counter.value = item_counter.value + 1 %}
                                 <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %} {% if loop.index % 2 == 0 %}section-item-even{% else %}section-item-odd{% endif %}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" data-section="{{ item.section }}" onclick="deleteItemByRow('{{ item._id }}', event)">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
@@ -186,7 +184,7 @@
                                                {% if item.get('checked') %}checked{% endif %}
                                                onclick="event.stopPropagation()">
                                         {% if current_list.get('is_ordered') and current_list.get('show_numbering') %}
-                                        <span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">{{ item_counter.value }}.</span>
+                                        <span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">{{ loop.index }}.</span>
                                         {% endif %}
                                         <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
                                         {% if item.get('quantity', 1) > 1 %}
@@ -221,7 +219,7 @@
                                                {% if item.get('checked') %}checked{% endif %}
                                                onclick="event.stopPropagation()">
                                         {% if current_list.get('is_ordered') and current_list.get('show_numbering') %}
-                                        <span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">{{ item_counter.value }}.</span>
+                                        <span class="item-number font-semibold" style="color: var(--text-secondary); min-width: 2em;">{{ loop.index }}.</span>
                                         {% endif %}
                                         <span class="item-text {% if item.get('checked') %}line-through{% endif %}">{{ item.text }}</span>
                                         {% if item.get('quantity', 1) > 1 %}
