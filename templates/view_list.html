@@ -274,6 +274,15 @@
         >
             🔀 Move to Section
         </button>
+        {% if current_list.is_ordered %}
+        <button 
+            onclick="enterMoveMode()" 
+            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
+            style="color: var(--text-primary);"
+        >
+            ↕️ Move Item
+        </button>
+        {% endif %}
         {% endif %}
     </div>
     <div class="py-1 hidden" id="section-context-menu">
@@ -483,6 +492,16 @@
     </div>
 </div>
 
+<div id="exit-move-mode-btn" class="fixed hidden z-50" style="top: 20px; left: 50%; transform: translateX(-50%);">
+    <button 
+        onclick="exitMoveMode()" 
+        class="px-6 py-3 rounded-lg shadow-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
+        style="font-size: 16px;"
+    >
+        ✕ Exit Move Mode
+    </button>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -492,9 +511,15 @@ const csrfToken = '{{ csrf_token() }}';
 const isOwner = {{ 'true' if is_owner else 'false' }};
 const isCollaborator = {{ 'true' if is_collaborator else 'false' }};
 const isEthereal = {{ 'true' if current_list.is_ethereal else 'false' }};
+const isOrdered = {{ 'true' if current_list.is_ordered else 'false' }};
 let undoStack = [];
 const MAX_UNDO = 10;
 let currentMode = 'checkOff';
+
+let moveModeActive = false;
+let draggedItem = null;
+let draggedItemElement = null;
+let dragPlaceholder = null;
 
 function loadUndoStack() {
     const storageKey = `undoStack_${listId}`;
@@ -2147,5 +2172,162 @@ async function moveItemToSection(sectionName) {
     
     closeMoveToSectionModal();
 }
+
+function enterMoveMode() {
+    if (!isOrdered) {
+        showModal('✗ This list is not ordered', 'error');
+        return;
+    }
+    
+    hideContextMenu();
+    
+    moveModeActive = true;
+    
+    const exitBtn = document.getElementById('exit-move-mode-btn');
+    exitBtn.classList.remove('hidden');
+    
+    const itemRows = document.querySelectorAll('.item-row');
+    itemRows.forEach(row => {
+        row.style.cursor = 'grab';
+        row.setAttribute('draggable', 'true');
+        
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('drop', handleDrop);
+        row.addEventListener('dragend', handleDragEnd);
+        row.addEventListener('dragenter', handleDragEnter);
+        row.addEventListener('dragleave', handleDragLeave);
+    });
+    
+    showModal('✓ Move mode activated - Drag items to reorder', 'success');
+}
+
+function exitMoveMode() {
+    moveModeActive = false;
+    
+    const exitBtn = document.getElementById('exit-move-mode-btn');
+    exitBtn.classList.add('hidden');
+    
+    const itemRows = document.querySelectorAll('.item-row');
+    itemRows.forEach(row => {
+        row.style.cursor = 'pointer';
+        row.removeAttribute('draggable');
+        
+        row.removeEventListener('dragstart', handleDragStart);
+        row.removeEventListener('dragover', handleDragOver);
+        row.removeEventListener('drop', handleDrop);
+        row.removeEventListener('dragend', handleDragEnd);
+        row.removeEventListener('dragenter', handleDragEnter);
+        row.removeEventListener('dragleave', handleDragLeave);
+    });
+    
+    if (dragPlaceholder) {
+        dragPlaceholder.remove();
+        dragPlaceholder = null;
+    }
+    
+    showModal('✓ Move mode deactivated', 'success');
+}
+
+function handleDragStart(e) {
+    draggedItemElement = e.target.closest('.item-row');
+    draggedItem = {
+        id: draggedItemElement.getAttribute('data-item-id'),
+        text: draggedItemElement.getAttribute('data-item-text')
+    };
+    
+    draggedItemElement.style.opacity = '0.4';
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    const targetRow = e.target.closest('.item-row');
+    if (targetRow && targetRow !== draggedItemElement) {
+        targetRow.style.borderTop = '3px solid #3b82f6';
+    }
+}
+
+function handleDragLeave(e) {
+    const targetRow = e.target.closest('.item-row');
+    if (targetRow && targetRow !== draggedItemElement) {
+        targetRow.style.borderTop = '';
+    }
+}
+
+async function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    const targetRow = e.target.closest('.item-row');
+    targetRow.style.borderTop = '';
+    
+    if (!draggedItemElement || !targetRow || draggedItemElement === targetRow) {
+        return false;
+    }
+    
+    const allItems = Array.from(document.querySelectorAll('.item-row'));
+    const draggedIndex = allItems.indexOf(draggedItemElement);
+    const targetIndex = allItems.indexOf(targetRow);
+    
+    if (targetIndex > draggedIndex) {
+        targetRow.parentNode.insertBefore(draggedItemElement, targetRow.nextSibling);
+    } else {
+        targetRow.parentNode.insertBefore(draggedItemElement, targetRow);
+    }
+    
+    const itemOrders = {};
+    const updatedItems = Array.from(document.querySelectorAll('.item-row'));
+    updatedItems.forEach((row, index) => {
+        const itemId = row.getAttribute('data-item-id');
+        itemOrders[itemId] = index;
+    });
+    
+    const response = await fetch(`/api/lists/${listId}/items/reorder`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ item_orders: itemOrders })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal('✓ Item moved successfully', 'success');
+    } else {
+        showModal('✗ Failed to reorder items', 'error');
+    }
+    
+    return false;
+}
+
+function handleDragEnd(e) {
+    if (draggedItemElement) {
+        draggedItemElement.style.opacity = '1';
+    }
+    
+    const allRows = document.querySelectorAll('.item-row');
+    allRows.forEach(row => {
+        row.style.borderTop = '';
+    });
+}
+
+window.addEventListener('scroll', function() {
+    const exitBtn = document.getElementById('exit-move-mode-btn');
+    if (exitBtn && !exitBtn.classList.contains('hidden')) {
+        exitBtn.style.position = 'fixed';
+        exitBtn.style.top = '20px';
+    }
+});
 </script>
 {% endblock %}
