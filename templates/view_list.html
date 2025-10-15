@@ -535,6 +535,7 @@
 
 {% block extra_js %}
 <script>
+// Updated: Oct 15, 2025 - Fixed touch event handlers
 const listId = '{{ current_list._id }}';
 const csrfToken = '{{ csrf_token() }}';
 const isOwner = {{ 'true' if is_owner else 'false' }};
