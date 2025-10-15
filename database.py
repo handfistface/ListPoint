@@ -93,9 +93,9 @@ class Database:
     def get_list_by_id(self, list_id):
         return self.db.lists.find_one({'_id': ObjectId(list_id)})
     
-    def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None, parent_id=None):
+    def create_list(self, name, owner_id, thumbnail_url='', is_public=True, is_ethereal=False, tags=None, items=None, parent_id=None, is_ordered=False, show_numbering=False):
         items = items or []
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, is_ordered)
         
         list_doc = {
             'name': name,
@@ -103,6 +103,8 @@ class Database:
             'thumbnail_url': thumbnail_url,
             'is_public': is_public,
             'is_ethereal': is_ethereal,
+            'is_ordered': is_ordered,
+            'show_numbering': show_numbering,
             'tags': tags or [],
             'items': sorted_items,
             'collaborators': [],
@@ -174,7 +176,13 @@ class Database:
         self.db.lists.delete_one({'_id': ObjectId(list_id)})
         self.db.favorites.delete_many({'list_id': ObjectId(list_id)})
     
-    def _sort_items_with_sections(self, items):
+    def _sort_items_with_sections(self, items, is_ordered=False):
+        if is_ordered:
+            for i, item in enumerate(items):
+                if 'order' not in item:
+                    item['order'] = i
+            return sorted(items, key=lambda x: x.get('order', 0))
+        
         sectioned = [item for item in items if item.get('section')]
         loose = [item for item in items if not item.get('section')]
         
@@ -202,8 +210,13 @@ class Database:
         if section:
             new_item['section'] = section
         
+        is_ordered = list_doc.get('is_ordered', False)
+        if is_ordered:
+            max_order = max([item.get('order', 0) for item in list_doc['items']], default=-1)
+            new_item['order'] = max_order + 1
+        
         items = list_doc['items'] + [new_item]
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, is_ordered)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -282,12 +295,17 @@ class Database:
             'added_at': datetime.utcnow()
         }
         
+        is_ordered = list_doc.get('is_ordered', False)
+        if is_ordered:
+            max_order = max([item.get('order', 0) for item in original_items], default=-1)
+            new_item['order'] = max_order + 1
+        
         original_items.append(new_item)
-        sorted_original = self._sort_items_with_sections(original_items)
+        sorted_original = self._sort_items_with_sections(original_items, is_ordered)
         
         items = list_doc.get('items', [])
         items.append(new_item.copy())
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, is_ordered)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -334,6 +352,29 @@ class Database:
             {'$set': {'items': items, 'updated_at': datetime.utcnow()}}
         )
         return True, 'Quantity updated'
+    
+    def reorder_items(self, list_id, item_orders):
+        list_doc = self.get_list_by_id(list_id)
+        if not list_doc:
+            return False, 'List not found'
+        
+        if not list_doc.get('is_ordered', False):
+            return False, 'List is not an ordered list'
+        
+        items = list_doc.get('items', [])
+        item_dict = {str(item['_id']): item for item in items}
+        
+        for item_id, order in item_orders.items():
+            if item_id in item_dict:
+                item_dict[item_id]['order'] = order
+        
+        reordered_items = sorted(item_dict.values(), key=lambda x: x.get('order', 0))
+        
+        self.db.lists.update_one(
+            {'_id': ObjectId(list_id)},
+            {'$set': {'items': reordered_items, 'updated_at': datetime.utcnow()}}
+        )
+        return True, 'Items reordered successfully'
     
     def update_item_text(self, list_id, item_id, new_text):
         list_doc = self.get_list_by_id(list_id)
@@ -770,7 +811,9 @@ class Database:
             is_ethereal=original_list.get('is_ethereal', False),
             tags=original_list.get('tags', []) if original_list.get('tags') else [],
             items=items_copy,
-            parent_id=str(list_id)
+            parent_id=str(list_id),
+            is_ordered=original_list.get('is_ordered', False),
+            show_numbering=original_list.get('show_numbering', False)
         )
         
         if original_list.get('is_ethereal') and original_items_copy:
