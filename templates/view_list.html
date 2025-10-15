@@ -2714,6 +2714,7 @@ function reattachMoveEventListeners() {
         looseItemsZone.addEventListener('touchmove', handleLooseItemsTouchMove, { passive: false });
         looseItemsZone.addEventListener('touchend', handleLooseItemsTouchEnd, { passive: false });
     }
+}
 
 async function handleSectionTouchEnd(e) {
     if (!moveModeActive || !draggedItemElement) return;
