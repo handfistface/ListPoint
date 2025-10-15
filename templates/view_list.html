@@ -521,6 +521,7 @@ const isOwner = {{ 'true' if is_owner else 'false' }};
 const isCollaborator = {{ 'true' if is_collaborator else 'false' }};
 const isEthereal = {{ 'true' if current_list.is_ethereal else 'false' }};
 const isOrdered = {{ 'true' if current_list.is_ordered else 'false' }};
+const showNumbering = {{ 'true' if current_list.get('show_numbering') else 'false' }};
 let undoStack = [];
 const MAX_UNDO = 10;
 let currentMode = 'checkOff';
@@ -2316,6 +2317,8 @@ async function handleDrop(e) {
         targetRow.parentNode.insertBefore(draggedItemElement, targetRow);
     }
     
+    updateItemNumbers();
+    
     const itemOrders = {};
     const updatedItems = Array.from(document.querySelectorAll('.item-row'));
     updatedItems.forEach((row, index) => {
@@ -2341,6 +2344,18 @@ async function handleDrop(e) {
     }
     
     return false;
+}
+
+function updateItemNumbers() {
+    if (!isOrdered || !showNumbering) return;
+    
+    const allRows = document.querySelectorAll('.item-row');
+    allRows.forEach((row, index) => {
+        const numberSpan = row.querySelector('.item-number');
+        if (numberSpan) {
+            numberSpan.textContent = `${index + 1}.`;
+        }
+    });
 }
 
 function handleDragEnd(e) {
@@ -2446,6 +2461,8 @@ async function handleTouchEnd(e) {
     } else {
         touchTargetElement.parentNode.insertBefore(draggedItemElement, touchTargetElement);
     }
+    
+    updateItemNumbers();
     
     const itemOrders = {};
     const updatedItems = Array.from(document.querySelectorAll('.item-row'));
