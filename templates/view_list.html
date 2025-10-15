@@ -211,7 +211,6 @@
                     <div class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color);">
                         <div class="space-y-2">
                             {% for item in loose_items %}
-                                {% set item_counter.value = item_counter.value + 1 %}
                                 <div class="flex items-center justify-between p-3 rounded item-row {% if item.get('checked') %}opacity-50{% endif %}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="{{ item._id }}" data-item-text="{{ item.text }}" data-checked="{{ 'true' if item.get('checked') else 'false' }}" data-quantity="{{ item.get('quantity', 1) }}" onclick="deleteItemByRow('{{ item._id }}', event)">
                                     <div class="flex items-center gap-3 flex-1">
                                         <input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer {% if not current_list.is_ethereal %}hidden{% endif %}" 
