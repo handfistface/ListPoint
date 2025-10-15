@@ -1981,27 +1981,12 @@ async function confirmDeleteSection() {
     if (result.success) {
         showModal('✓ Section deleted successfully', 'success');
         
-        const itemsArray = [];
-        document.querySelectorAll('.item-row').forEach(row => {
-            const itemSection = row.getAttribute('data-section');
-            
-            if (itemSection !== sectionToDelete) {
-                const itemId = row.getAttribute('data-item-id');
-                const itemText = row.getAttribute('data-item-text');
-                const itemChecked = row.getAttribute('data-checked') === 'true';
-                const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
-                
-                itemsArray.push({
-                    _id: itemId,
-                    text: itemText,
-                    section: itemSection,
-                    checked: itemChecked,
-                    quantity: itemQuantity
-                });
-            }
-        });
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
         
-        rebuildItemsList(itemsArray);
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+        }
     } else {
         showModal(`✗ ${result.message}`, 'error');
     }
