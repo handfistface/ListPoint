@@ -2,6 +2,7 @@
 
 ## Recent Changes
 - **October 15, 2025**:
+  - **Added dynamic number updates for ordered lists**: Item numbers now update immediately when items are reordered in move mode, providing instant visual feedback on both desktop and mobile devices.
   - **Fixed mobile drag-and-drop for ordered lists**: Added comprehensive touch event handlers (touchstart, touchmove, touchend) to enable drag-and-drop reordering on mobile devices. Features include:
     - Touch-based dragging with visual feedback (opacity changes, border highlights, scale transform)
     - Auto-scroll functionality when dragging near screen edges for long lists
