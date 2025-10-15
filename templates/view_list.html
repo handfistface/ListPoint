@@ -1871,6 +1871,7 @@ function rebuildItemsList(items, emptySections = []) {
 }
 
 let renamingSectionName = null;
+let deletingSectionName = null;
 
 function renameSectionFromMenu() {
     if (!contextMenuSectionName) return;
@@ -1944,6 +1945,8 @@ async function saveRenamedSection() {
 
 function deleteSectionFromMenu() {
     if (!contextMenuSectionName) return;
+    
+    deletingSectionName = contextMenuSectionName;
     hideContextMenu();
     
     const modal = document.getElementById('delete-section-modal');
@@ -1959,10 +1962,11 @@ function closeDeleteSectionModal(event) {
     const modal = document.getElementById('delete-section-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    deletingSectionName = null;
 }
 
 async function confirmDeleteSection() {
-    const sectionToDelete = contextMenuSectionName;
+    const sectionToDelete = deletingSectionName;
     
     if (!sectionToDelete) {
         closeDeleteSectionModal();
@@ -1992,6 +1996,7 @@ async function confirmDeleteSection() {
     }
     
     closeDeleteSectionModal();
+    deletingSectionName = null;
 }
 
 let currentSectionForAdd = null;
