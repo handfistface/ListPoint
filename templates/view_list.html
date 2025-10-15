@@ -757,7 +757,11 @@ function setupItemEventListeners() {
             clearTimeout(longPressTimer);
             longPressTimer = null;
         }
-    }, { passive: true });
+        
+        if (longPressTriggered) {
+            e.preventDefault();
+        }
+    }, { passive: false });
     
     itemsList.addEventListener('touchmove', (e) => {
         if (longPressTimer) {
@@ -912,24 +916,11 @@ function editItemFromMenu() {
 }
 
 document.addEventListener('click', (e) => {
-    if (longPressTriggered) {
-        setTimeout(() => {
-            longPressTriggered = false;
-        }, 100);
-        return;
-    }
     const contextMenu = document.getElementById('context-menu');
     if (!contextMenu.contains(e.target)) {
         hideContextMenu();
     }
 });
-
-document.addEventListener('touchend', (e) => {
-    const contextMenu = document.getElementById('context-menu');
-    if (longPressTriggered && !contextMenu.classList.contains('hidden')) {
-        e.preventDefault();
-    }
-}, { passive: false });
 
 let editingItemId = null;
 let editingItemText = null;
