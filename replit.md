@@ -1,6 +1,15 @@
 # List Point Web App
 
 ## Recent Changes
+- **October 15, 2025**:
+  - **Added Ordered Lists Feature**: Users can now enable ordered lists in list settings, allowing manual item reordering without automatic alphabetization. Features include:
+    - "Enable Ordered Lists" checkbox in list settings to activate ordered mode
+    - "Show Numbering" option to display sequential numbers (1., 2., 3., etc.) next to items
+    - "Move Item" context menu option (only visible for ordered lists) to enter drag-and-drop mode
+    - Drag-and-drop interface with visual feedback (opacity changes, border highlights) for easy reordering
+    - Floating "Exit Move Mode" button that stays visible during scrolling
+    - Backend support for persisting item order via new `order` field and `/api/lists/<list_id>/items/reorder` API endpoint
+    - Items in ordered lists maintain manual order; no automatic alphabetical sorting
 - **October 14, 2025**: 
   - **Fixed critical bug**: Resolved "Error adding item" failures when adding items to lists with sections. The addItem() function was attempting manual alphabetical insertion which broke when sections were present. Updated to use rebuildItemsList() after adding items (matching the addItemToSection() approach), ensuring backend's proper section sorting is always respected.
   - **Added "Move to Section" feature**: Users can now move items between sections or to loose items using the right-click/long-press context menu. The modal displays all available sections (excluding the current section) and an option to remove the item from its section (move to loose items). Items can be moved from any section to another, or from loose items to a section.
@@ -50,7 +59,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **Footer Pages**: About Us page describing the platform's mission, features, and solo developer background. Contact Us page with email contact information (kirschnerjohn10@gmail.com).
 
 ### System Design Choices
-- All items are automatically sorted alphabetically upon addition. When sections exist, items within each section are sorted alphabetically, and sections themselves are sorted alphabetically at the top of the list, with loose items appearing at the bottom.
+- Items are automatically sorted alphabetically upon addition, unless the list has "Ordered Lists" enabled. When sections exist, items within each section are sorted alphabetically, and sections themselves are sorted alphabetically at the top of the list, with loose items appearing at the bottom. For ordered lists, manual item order is preserved via an `order` field, and alphabetical sorting is disabled.
 - Check lists store an `original_items` snapshot for restoration.
 - `items` in check lists have a `checked` field and an optional `section` field for organization.
 - **List Sections Storage**: Sections are stored as a field (`section`) on each item rather than as separate entities. Items with a `section` field are grouped and displayed together with visual distinction (striped pattern). Loose items (section=null) appear at the bottom with a horizontal separator.
