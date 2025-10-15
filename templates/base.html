@@ -104,6 +104,19 @@
         input[type="file"]::-webkit-file-upload-button {
             pointer-events: all;
         }
+        
+        /* Hamburger menu animations */
+        #hamburger-menu {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        
+        #hamburger-menu.show {
+            max-height: 500px;
+            opacity: 1;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -144,7 +157,7 @@
         </div>
         
         {% if current_user.is_authenticated %}
-        <div id="hamburger-menu" class="hidden border-t" style="border-color: var(--border-color);">
+        <div id="hamburger-menu" class="border-t" style="border-color: var(--border-color);">
             <div class="px-4 py-2 space-y-1">
                 <a href="{{ url_for('index') }}" class="block card px-4 py-3 rounded hover:opacity-80" onclick="toggleHamburgerMenu()">
                     🏠 Home
@@ -234,10 +247,10 @@
 
         function toggleHamburgerMenu() {
             const menu = document.getElementById('hamburger-menu');
-            if (menu.classList.contains('hidden')) {
-                menu.classList.remove('hidden');
+            if (menu.classList.contains('show')) {
+                menu.classList.remove('show');
             } else {
-                menu.classList.add('hidden');
+                menu.classList.add('show');
             }
         }
 
@@ -256,8 +269,8 @@
                 // Close hamburger menu
                 const hamburgerMenu = document.getElementById('hamburger-menu');
                 const hamburgerButton = e.target.closest('button[onclick="toggleHamburgerMenu()"]');
-                if (hamburgerMenu && !hamburgerMenu.classList.contains('hidden') && !hamburgerButton && !hamburgerMenu.contains(e.target)) {
-                    hamburgerMenu.classList.add('hidden');
+                if (hamburgerMenu && hamburgerMenu.classList.contains('show') && !hamburgerButton && !hamburgerMenu.contains(e.target)) {
+                    hamburgerMenu.classList.remove('show');
                 }
             });
             
