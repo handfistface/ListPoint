@@ -535,6 +535,23 @@ def adjust_quantity(list_id, item_id):
     
     return jsonify({'success': success, 'message': message, 'quantity': new_quantity})
 
+@app.route('/api/lists/<list_id>/items/reorder', methods=['POST'])
+@login_required
+def reorder_items(list_id):
+    list_doc = db.get_list_by_id(list_id)
+    
+    if not can_manage_list(list_doc, check_collaborator=True):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+    
+    data = request.get_json()
+    item_orders = data.get('item_orders', {})
+    
+    if not item_orders:
+        return jsonify({'success': False, 'message': 'Item orders required'}), 400
+    
+    success, message = db.reorder_items(list_id, item_orders)
+    return jsonify({'success': success, 'message': message})
+
 @app.route('/api/lists/<list_id>/items/<item_id>', methods=['PUT'])
 @login_required
 def update_item(list_id, item_id):
