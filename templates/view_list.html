@@ -303,6 +303,7 @@
         </button>
         {% if current_list.is_ordered %}
         <button 
+            id="enter-move-mode-btn-menu"
             onclick="enterMoveMode()" 
             class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
             style="color: var(--text-primary);"
@@ -782,6 +783,15 @@ function showContextMenu(x, y, itemId, itemText) {
             moveToSectionBtn.classList.remove('hidden');
         } else {
             moveToSectionBtn.classList.add('hidden');
+        }
+    }
+    
+    const enterMoveModeBtn = document.getElementById('enter-move-mode-btn-menu');
+    if (enterMoveModeBtn) {
+        if (moveModeActive) {
+            enterMoveModeBtn.classList.add('hidden');
+        } else {
+            enterMoveModeBtn.classList.remove('hidden');
         }
     }
     
