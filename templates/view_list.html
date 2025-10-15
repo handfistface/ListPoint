@@ -760,6 +760,7 @@ function setupItemEventListeners() {
         
         if (longPressTriggered) {
             e.preventDefault();
+            e.stopPropagation();
         }
     }, { passive: false });
     
@@ -769,6 +770,18 @@ function setupItemEventListeners() {
             longPressTimer = null;
         }
     }, { passive: true });
+    
+    itemsList.addEventListener('click', (e) => {
+        if (longPressTriggered) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            setTimeout(() => {
+                longPressTriggered = false;
+            }, 100);
+            return false;
+        }
+    }, { capture: true });
 }
 
 function showContextMenu(x, y, itemId, itemText) {
@@ -1146,7 +1159,11 @@ async function deleteItemByRow(itemId, event) {
     if (!isOwner && !isCollaborator) return;
     
     if (longPressTriggered) {
-        longPressTriggered = false;
+        event.preventDefault();
+        event.stopPropagation();
+        setTimeout(() => {
+            longPressTriggered = false;
+        }, 100);
         return;
     }
     
