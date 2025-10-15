@@ -17,7 +17,7 @@ The application features a clean, minimalistic design with a responsive interfac
 - **List Management**: Supports "Standard Lists" for permanent items and "Check Lists" as templates. Check Lists have "Check Off Mode" and "Edit Mode." Lists support alphabetical sections and manual ordering for ordered lists. All lists are public by default.
 - **Item Management**: Features click-to-delete, right-click/long-press to edit, autocomplete suggestions, and an undo system for deleted items. Items can be moved between sections or to loose items.
 - **List Sections**: Organize items into sections with visual distinction. Sections have their own context menu for rename and delete. Items can be added directly to sections.
-- **Ordered Lists**: Allows manual item reordering via drag-and-drop, with numbering display and persistence of item order.
+- **Ordered Lists**: Allows manual item reordering via drag-and-drop, with numbering display and persistence of item order. Items can be dragged to empty sections in move mode.
 - **Social Features**: Browse, search, filter public lists; favorite lists; invite collaborators with shared item management.
 - **Image Handling**: Client-side image cropping and compression (up to 500KB) to JPEG.
 - **Revenue System**: Integrates Google AdSense for ads and Stripe for subscription-based ad removal.

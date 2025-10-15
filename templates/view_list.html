@@ -2331,7 +2331,14 @@ function enterMoveMode() {
         row.addEventListener('touchend', handleTouchEnd, { passive: false });
     });
     
-    showModal('✓ Move mode activated - Drag items to reorder', 'success');
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    sectionHeaders.forEach(header => {
+        header.addEventListener('dragover', handleSectionDragOver);
+        header.addEventListener('drop', handleSectionDrop);
+        header.addEventListener('dragleave', handleSectionDragLeave);
+    });
+    
+    showModal('✓ Move mode activated - Drag items to reorder or move to sections', 'success');
 }
 
 function exitMoveMode() {
@@ -2363,6 +2370,14 @@ function exitMoveMode() {
         row.removeEventListener('touchstart', handleTouchStart);
         row.removeEventListener('touchmove', handleTouchMove);
         row.removeEventListener('touchend', handleTouchEnd);
+    });
+    
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    sectionHeaders.forEach(header => {
+        header.style.backgroundColor = '';
+        header.removeEventListener('dragover', handleSectionDragOver);
+        header.removeEventListener('drop', handleSectionDrop);
+        header.removeEventListener('dragleave', handleSectionDragLeave);
     });
     
     if (dragPlaceholder) {
@@ -2481,6 +2496,75 @@ function handleDragEnd(e) {
     allRows.forEach(row => {
         row.style.borderTop = '';
     });
+    
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    sectionHeaders.forEach(header => {
+        header.style.backgroundColor = '';
+    });
+}
+
+function handleSectionDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const sectionHeader = e.target.closest('.section-header');
+    if (sectionHeader) {
+        sectionHeader.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+    }
+    
+    return false;
+}
+
+function handleSectionDragLeave(e) {
+    const sectionHeader = e.target.closest('.section-header');
+    if (sectionHeader) {
+        sectionHeader.style.backgroundColor = '';
+    }
+}
+
+async function handleSectionDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const sectionHeader = e.target.closest('.section-header');
+    if (!sectionHeader || !draggedItemElement) {
+        return false;
+    }
+    
+    sectionHeader.style.backgroundColor = '';
+    
+    const sectionName = sectionHeader.getAttribute('data-section-name');
+    const itemId = draggedItemElement.getAttribute('data-item-id');
+    
+    const response = await fetch(`/api/lists/${listId}/sections`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            item_id: itemId,
+            section_name: sectionName
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        showModal(`✓ Item moved to section "${sectionName}"`, 'success');
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+            exitMoveMode();
+        }
+    } else {
+        showModal(`✗ ${result.message}`, 'error');
+    }
+    
+    return false;
 }
 
 function handleTouchStart(e) {
