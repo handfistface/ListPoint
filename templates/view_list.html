@@ -297,21 +297,13 @@
         >
             ⬆️ Promote to Section
         </button>
-        <button 
-            id="move-to-section-btn"
-            onclick="showMoveToSectionModal()" 
-            class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
-            style="color: var(--text-primary);"
-        >
-            🔀 Move to Section
-        </button>
         {% if current_list.is_ordered %}
         <button 
             onclick="enterMoveMode()" 
             class="w-full text-left px-4 py-2 hover:bg-opacity-80 transition-colors"
             style="color: var(--text-primary);"
         >
-            ↕️ Move Item
+            ↕️ Move
         </button>
         {% endif %}
         {% endif %}
