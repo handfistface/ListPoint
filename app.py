@@ -362,10 +362,15 @@ def edit_list(list_id):
     if form.validate_on_submit():
         tags = [tag.strip() for tag in form.tags.data.split(',') if tag.strip()]
         
+        is_ordered = request.form.get('is_ordered') == 'true'
+        show_numbering = request.form.get('show_numbering') == 'true'
+        
         update_data = {
             'name': form.name.data,
             'tags': tags,
-            'is_public': True
+            'is_public': True,
+            'is_ordered': is_ordered,
+            'show_numbering': show_numbering
         }
         
         if 'thumbnail' in request.files:

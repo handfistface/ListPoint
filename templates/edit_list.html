@@ -50,6 +50,23 @@
         </div>
         
         <div class="border-t pt-4" style="border-color: var(--border-color);">
+            <h3 class="font-semibold mb-3">List Settings</h3>
+            <div class="space-y-3">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="is-ordered-checkbox" class="w-4 h-4" {% if current_list.is_ordered %}checked{% endif %}>
+                    <span>Enable Ordered Lists</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer ml-6" id="show-numbering-container" {% if not current_list.is_ordered %}style="display: none;"{% endif %}>
+                    <input type="checkbox" id="show-numbering-checkbox" class="w-4 h-4" {% if current_list.show_numbering %}checked{% endif %}>
+                    <span>Show Numbering</span>
+                </label>
+                <p class="text-sm ml-6" style="color: var(--text-secondary);">
+                    Ordered lists allow you to manually arrange items. Items will not be alphabetized automatically.
+                </p>
+            </div>
+        </div>
+        
+        <div class="border-t pt-4" style="border-color: var(--border-color);">
             <h3 class="font-semibold mb-3">Collaborators</h3>
             <p class="text-sm mb-3" style="color: var(--text-secondary);">
                 Invite users to help manage this list. Collaborators can add items and view private lists.
@@ -759,6 +776,42 @@
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
+    });
+    
+    const isOrderedCheckbox = document.getElementById('is-ordered-checkbox');
+    const showNumberingContainer = document.getElementById('show-numbering-container');
+    const showNumberingCheckbox = document.getElementById('show-numbering-checkbox');
+    
+    isOrderedCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            showNumberingContainer.style.display = 'flex';
+        } else {
+            showNumberingContainer.style.display = 'none';
+            showNumberingCheckbox.checked = false;
+        }
+    });
+    
+    document.querySelector('form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('is_ordered', isOrderedCheckbox.checked ? 'true' : 'false');
+        formData.append('show_numbering', showNumberingCheckbox.checked ? 'true' : 'false');
+        
+        try {
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                this.submit();
+            }
+        } catch (error) {
+            this.submit();
+        }
     });
 </script>
 {% endblock %}
