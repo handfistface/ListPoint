@@ -2516,12 +2516,11 @@ async function handleDrop(e) {
     }
     
     const draggedItemId = draggedItemElement.getAttribute('data-item-id');
-    const targetItemId = targetRow.getAttribute('data-item-id');
     const targetSection = targetRow.getAttribute('data-section') || '';
     const draggedSection = draggedItemElement.getAttribute('data-section') || '';
     
     if (targetSection !== draggedSection) {
-        const response = await fetch(`/api/lists/${listId}/sections`, {
+        const sectionResponse = await fetch(`/api/lists/${listId}/sections`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2533,22 +2532,12 @@ async function handleDrop(e) {
             })
         });
         
-        const result = await response.json();
+        const sectionResult = await sectionResponse.json();
         
-        if (!result.success) {
-            showModal(`✗ ${result.message}`, 'error');
+        if (!sectionResult.success) {
+            showModal(`✗ ${sectionResult.message}`, 'error');
             return false;
         }
-        
-        const listResponse = await fetch(`/api/lists/${listId}`);
-        const listData = await listResponse.json();
-        
-        if (listData.success) {
-            rebuildItemsList(listData.items, listData.empty_sections || []);
-            reattachMoveEventListeners();
-        }
-        
-        return false;
     }
     
     const allItems = Array.from(document.querySelectorAll('.item-row'));
