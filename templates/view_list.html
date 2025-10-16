@@ -2501,8 +2501,15 @@ async function handleDrop(e) {
         e.stopPropagation();
     }
     
+    const sectionHeader = e.target.closest('.section-header');
+    if (sectionHeader) {
+        return await handleSectionDrop(e);
+    }
+    
     const targetRow = e.target.closest('.item-row');
-    targetRow.style.borderTop = '';
+    if (targetRow) {
+        targetRow.style.borderTop = '';
+    }
     
     if (!draggedItemElement || !targetRow || draggedItemElement === targetRow) {
         return false;
