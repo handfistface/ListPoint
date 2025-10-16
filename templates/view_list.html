@@ -1865,7 +1865,7 @@ function rebuildItemsList(items, emptySections = []) {
                 const escapedItemText = escapeHtml(item.text);
                 const jsSafeItemId = escapeJs(item._id);
                 
-                html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
+                html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass}" style="background-color: var(--bg-primary); cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" data-section="" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
                 html += `<div class="flex items-center gap-3 flex-1">`;
                 html += `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer ${checkboxHidden}" onchange="toggleItemChecked('${jsSafeItemId}')" ${checked} onclick="event.stopPropagation()">`;
                 
@@ -2501,13 +2501,8 @@ async function handleDrop(e) {
         e.stopPropagation();
     }
     
-    console.log('[handleDrop] event.target:', e.target);
-    console.log('[handleDrop] closest .section-header:', e.target.closest('.section-header'));
-    console.log('[handleDrop] closest .item-row:', e.target.closest('.item-row'));
-    
     const sectionHeader = e.target.closest('.section-header');
     if (sectionHeader) {
-        console.log('[handleDrop] Delegating to handleSectionDrop');
         return await handleSectionDrop(e);
     }
     
@@ -2517,11 +2512,34 @@ async function handleDrop(e) {
     }
     
     if (!draggedItemElement || !targetRow || draggedItemElement === targetRow) {
-        console.log('[handleDrop] Early return - no valid target');
         return false;
     }
     
-    console.log('[handleDrop] Proceeding with reorder');
+    const draggedItemId = draggedItemElement.getAttribute('data-item-id');
+    const targetItemId = targetRow.getAttribute('data-item-id');
+    const targetSection = targetRow.getAttribute('data-section');
+    const draggedSection = draggedItemElement.getAttribute('data-section');
+    
+    if (targetSection && targetSection !== draggedSection) {
+        const response = await fetch(`/api/lists/${listId}/sections`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                item_id: draggedItemId,
+                section_name: targetSection
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            showModal(`✗ ${result.message}`, 'error');
+            return false;
+        }
+    }
     
     const allItems = Array.from(document.querySelectorAll('.item-row'));
     const draggedIndex = allItems.indexOf(draggedItemElement);
@@ -2542,7 +2560,7 @@ async function handleDrop(e) {
         itemOrders[itemId] = index;
     });
     
-    const response = await fetch(`/api/lists/${listId}/items/reorder`, {
+    const reorderResponse = await fetch(`/api/lists/${listId}/items/reorder`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2551,9 +2569,9 @@ async function handleDrop(e) {
         body: JSON.stringify({ item_orders: itemOrders })
     });
     
-    const result = await response.json();
+    const reorderResult = await reorderResponse.json();
     
-    if (result.success) {
+    if (reorderResult.success) {
         showModal('✓ Item moved successfully', 'success');
     } else {
         showModal('✗ Failed to reorder items', 'error');
@@ -2645,26 +2663,20 @@ function handleSectionTouchMove(e) {
 }
 
 async function handleSectionDrop(e) {
-    console.log('[handleSectionDrop] Called!');
     e.preventDefault();
     e.stopPropagation();
     
     const sectionHeader = e.target.closest('.section-header');
-    console.log('[handleSectionDrop] sectionHeader:', sectionHeader);
-    console.log('[handleSectionDrop] draggedItemElement:', draggedItemElement);
-    
     if (!sectionHeader || !draggedItemElement) {
-        console.log('[handleSectionDrop] Early return - no section or dragged item');
         return false;
     }
     
     sectionHeader.style.backgroundColor = '';
     sectionHeader.style.border = '';
+    sectionHeader.style.transform = '';
     
     const sectionName = sectionHeader.getAttribute('data-section-name');
     const itemId = draggedItemElement.getAttribute('data-item-id');
-    
-    console.log('[handleSectionDrop] sectionName:', sectionName, 'itemId:', itemId);
     
     const response = await fetch(`/api/lists/${listId}/sections`, {
         method: 'POST',
