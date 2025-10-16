@@ -1789,8 +1789,8 @@ function rebuildItemsList(items, emptySections = []) {
         const jsSafeSectionName = escapeJs(sectionName);
         
         html += `<div class="section-group mb-4" data-section-name="${escapedSectionName}">`;
-        html += `<div class="section-header flex items-center justify-between p-3 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-section-name="${escapedSectionName}">`;
-        html += `<span>${escapedSectionName}</span>`;
+        html += `<div class="section-header flex items-center justify-between p-4 rounded-t font-semibold cursor-pointer" style="background-color: var(--bg-secondary); user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; min-height: 60px;" data-section-name="${escapedSectionName}">`;
+        html += `<span style="pointer-events: none;">${escapedSectionName}</span>`;
         
         if (isOwner || isCollaborator) {
             html += `<button onclick="showSectionAddModal('${jsSafeSectionName}', event)" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">➕</button>`;
@@ -2597,8 +2597,9 @@ function handleSectionDragOver(e) {
     
     const sectionHeader = e.target.closest('.section-header');
     if (sectionHeader) {
-        sectionHeader.style.backgroundColor = 'rgba(59, 130, 246, 0.5)';
-        sectionHeader.style.border = '2px solid rgba(59, 130, 246, 0.8)';
+        sectionHeader.style.backgroundColor = 'rgba(59, 130, 246, 0.7)';
+        sectionHeader.style.border = '3px solid rgba(59, 130, 246, 1)';
+        sectionHeader.style.transform = 'scale(1.02)';
     }
     
     return false;
@@ -2618,6 +2619,7 @@ function handleSectionDragLeave(e) {
     if (sectionHeader) {
         sectionHeader.style.backgroundColor = '';
         sectionHeader.style.border = '';
+        sectionHeader.style.transform = '';
     }
 }
 
