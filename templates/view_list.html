@@ -1842,15 +1842,15 @@ function rebuildItemsList(items, emptySections = []) {
     
     const hasSections = Object.keys(sections).length > 0;
     
-    if (looseItems.length > 0 || (hasSections && isOrdered)) {
+    if (looseItems.length > 0 || (hasSections && isOrdered) || (moveModeActive && hasSections)) {
         const sortedLooseItems = isOrdered
             ? looseItems.sort((a, b) => (a.order || 0) - (b.order || 0))
             : looseItems.sort((a, b) => a.text.localeCompare(b.text));
         
-        html += `<div id="loose-items-drop-zone" class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color); transition: all 0.2s ease;">`;
+        html += `<div id="loose-items-drop-zone" class="loose-items-separator border-t-2 mt-6 pt-4" style="border-color: var(--border-color); transition: all 0.2s ease; min-height: 80px;">`;
         
-        if (looseItems.length === 0 && hasSections && isOrdered) {
-            html += `<div class="text-center py-6" style="color: var(--text-secondary);">`;
+        if (looseItems.length === 0 && hasSections && (isOrdered || moveModeActive)) {
+            html += `<div class="text-center py-6" style="color: var(--text-secondary); min-height: 60px; display: flex; align-items: center; justify-content: center;">`;
             html += `<p class="text-sm">Drop items here to remove from sections</p>`;
             html += `</div>`;
         } else {
@@ -2342,19 +2342,7 @@ async function moveItemToSection(sectionName) {
     closeMoveToSectionModal();
 }
 
-function enterMoveMode() {
-    if (!isOrdered) {
-        showModal('✗ This list is not ordered', 'error');
-        return;
-    }
-    
-    hideContextMenu();
-    
-    moveModeActive = true;
-    
-    const exitBtn = document.getElementById('exit-move-mode-btn');
-    exitBtn.classList.remove('hidden');
-    
+function attachMoveModeListeners() {
     const itemRows = document.querySelectorAll('.item-row');
     itemRows.forEach(row => {
         row.style.cursor = 'grab';
@@ -2383,6 +2371,12 @@ function enterMoveMode() {
         header.addEventListener('touchend', handleSectionTouchEnd, { passive: false });
     });
     
+    const sectionContainers = document.querySelectorAll('.section-items');
+    sectionContainers.forEach(container => {
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('drop', handleDrop);
+    });
+    
     const looseItemsZone = document.getElementById('loose-items-drop-zone');
     if (looseItemsZone) {
         looseItemsZone.addEventListener('dragover', handleLooseItemsDragOver);
@@ -2393,6 +2387,43 @@ function enterMoveMode() {
         looseItemsZone.addEventListener('touchmove', handleLooseItemsTouchMove, { passive: false });
         looseItemsZone.addEventListener('touchend', handleLooseItemsTouchEnd, { passive: false });
     }
+}
+
+function enterMoveMode() {
+    if (!isOrdered) {
+        showModal('✗ This list is not ordered', 'error');
+        return;
+    }
+    
+    hideContextMenu();
+    
+    moveModeActive = true;
+    
+    const exitBtn = document.getElementById('exit-move-mode-btn');
+    exitBtn.classList.remove('hidden');
+    
+    // Rebuild the items list to show the orphaned items section if needed
+    const itemsArray = [];
+    document.querySelectorAll('.item-row').forEach(row => {
+        const itemId = row.getAttribute('data-item-id');
+        const itemText = row.getAttribute('data-item-text');
+        const itemSection = row.getAttribute('data-section');
+        const itemChecked = row.getAttribute('data-checked') === 'true';
+        const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+        
+        itemsArray.push({
+            _id: itemId,
+            text: itemText,
+            section: itemSection,
+            checked: itemChecked,
+            quantity: itemQuantity
+        });
+    });
+    
+    rebuildItemsList(itemsArray);
+    
+    // Attach move mode listeners to all items (including newly created orphaned section)
+    attachMoveModeListeners();
     
     showModal('✓ Move mode activated - Drag items to reorder or move to sections', 'success');
 }
@@ -2440,6 +2471,12 @@ function exitMoveMode() {
         header.removeEventListener('touchend', handleSectionTouchEnd);
     });
     
+    const sectionContainers = document.querySelectorAll('.section-items');
+    sectionContainers.forEach(container => {
+        container.removeEventListener('dragover', handleDragOver);
+        container.removeEventListener('drop', handleDrop);
+    });
+    
     const looseItemsZone = document.getElementById('loose-items-drop-zone');
     if (looseItemsZone) {
         looseItemsZone.style.backgroundColor = '';
@@ -2460,6 +2497,26 @@ function exitMoveMode() {
     draggedItemElement = null;
     touchTargetElement = null;
     
+    // Rebuild the items list to hide the orphaned items section if not needed
+    const itemsArray = [];
+    document.querySelectorAll('.item-row').forEach(row => {
+        const itemId = row.getAttribute('data-item-id');
+        const itemText = row.getAttribute('data-item-text');
+        const itemSection = row.getAttribute('data-section');
+        const itemChecked = row.getAttribute('data-checked') === 'true';
+        const itemQuantity = parseInt(row.getAttribute('data-quantity')) || 1;
+        
+        itemsArray.push({
+            _id: itemId,
+            text: itemText,
+            section: itemSection,
+            checked: itemChecked,
+            quantity: itemQuantity
+        });
+    });
+    
+    rebuildItemsList(itemsArray);
+    
     showModal('✓ Move mode deactivated', 'success');
 }
 
@@ -2479,21 +2536,27 @@ function handleDragOver(e) {
         e.preventDefault();
     }
     e.dataTransfer.dropEffect = 'move';
+    
+    const targetRow = e.target.closest('.item-row');
+    if (targetRow && targetRow !== draggedItemElement) {
+        const allRows = document.querySelectorAll('.item-row');
+        allRows.forEach(row => {
+            if (row !== targetRow && row !== draggedItemElement) {
+                row.style.borderTop = '';
+            }
+        });
+        targetRow.style.borderTop = '3px solid #3b82f6';
+    }
+    
     return false;
 }
 
 function handleDragEnter(e) {
-    const targetRow = e.target.closest('.item-row');
-    if (targetRow && targetRow !== draggedItemElement) {
-        targetRow.style.borderTop = '3px solid #3b82f6';
-    }
+    // Handled in handleDragOver for better consistency
 }
 
 function handleDragLeave(e) {
-    const targetRow = e.target.closest('.item-row');
-    if (targetRow && targetRow !== draggedItemElement) {
-        targetRow.style.borderTop = '';
-    }
+    // Handled in handleDragOver for better consistency
 }
 
 async function handleDrop(e) {
@@ -2501,14 +2564,57 @@ async function handleDrop(e) {
         e.stopPropagation();
     }
     
+    const allRows = document.querySelectorAll('.item-row');
+    allRows.forEach(row => {
+        row.style.borderTop = '';
+    });
+    
     const sectionHeader = e.target.closest('.section-header');
     if (sectionHeader) {
         return await handleSectionDrop(e);
     }
     
-    const targetRow = e.target.closest('.item-row');
-    if (targetRow) {
-        targetRow.style.borderTop = '';
+    let targetRow = e.target.closest('.item-row');
+    
+    // If we dropped on a section container (not directly on an item),
+    // find the section and move the item to that section
+    if (!targetRow) {
+        const sectionContainer = e.target.closest('.section-items');
+        if (sectionContainer && draggedItemElement) {
+            const sectionHeader = sectionContainer.previousElementSibling;
+            if (sectionHeader && sectionHeader.classList.contains('section-header')) {
+                const sectionName = sectionHeader.getAttribute('data-section-name');
+                const draggedItemId = draggedItemElement.getAttribute('data-item-id');
+                
+                const sectionResponse = await fetch(`/api/lists/${listId}/sections`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ 
+                        item_id: draggedItemId,
+                        section_name: sectionName
+                    })
+                });
+                
+                const sectionResult = await sectionResponse.json();
+                
+                if (sectionResult.success) {
+                    const listResponse = await fetch(`/api/lists/${listId}`);
+                    const listData = await listResponse.json();
+                    
+                    if (listData.success) {
+                        rebuildItemsList(listData.items, listData.empty_sections || []);
+                        reattachMoveEventListeners();
+                        showModal(`✓ Item moved to section "${sectionName}"`, 'success');
+                    }
+                } else {
+                    showModal(`✗ ${sectionResult.message}`, 'error');
+                }
+                return false;
+            }
+        }
     }
     
     if (!draggedItemElement || !targetRow || draggedItemElement === targetRow) {
@@ -2538,6 +2644,16 @@ async function handleDrop(e) {
             showModal(`✗ ${sectionResult.message}`, 'error');
             return false;
         }
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+            reattachMoveEventListeners();
+            showModal('✓ Item moved to different section', 'success');
+        }
+        return false;
     }
     
     const allItems = Array.from(document.querySelectorAll('.item-row'));
@@ -2737,6 +2853,12 @@ function reattachMoveEventListeners() {
         
         header.addEventListener('touchmove', handleSectionTouchMove, { passive: false });
         header.addEventListener('touchend', handleSectionTouchEnd, { passive: false });
+    });
+    
+    const sectionContainers = document.querySelectorAll('.section-items');
+    sectionContainers.forEach(container => {
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('drop', handleDrop);
     });
     
     const looseItemsZone = document.getElementById('loose-items-drop-zone');
@@ -2994,6 +3116,7 @@ function handleTouchMove(e) {
     const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
     const targetRow = elementAtPoint ? elementAtPoint.closest('.item-row') : null;
     const sectionHeader = elementAtPoint ? elementAtPoint.closest('.section-header') : null;
+    const looseItemsZone = elementAtPoint ? elementAtPoint.closest('#loose-items-drop-zone') : null;
     
     const allRows = document.querySelectorAll('.item-row');
     allRows.forEach(row => {
@@ -3008,12 +3131,27 @@ function handleTouchMove(e) {
         header.style.border = '';
     });
     
+    const zone = document.getElementById('loose-items-drop-zone');
+    if (zone) {
+        zone.style.backgroundColor = '';
+        zone.style.border = '';
+    }
+    
     if (sectionHeader) {
         sectionHeader.style.backgroundColor = 'rgba(59, 130, 246, 0.5)';
         sectionHeader.style.border = '2px solid rgba(59, 130, 246, 0.8)';
+        touchTargetElement = null;
+    } else if (looseItemsZone && !targetRow) {
+        if (zone) {
+            zone.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+            zone.style.border = '3px solid rgba(59, 130, 246, 0.8)';
+        }
+        touchTargetElement = 'loose-items';
     } else if (targetRow && targetRow !== draggedItemElement) {
         touchTargetElement = targetRow;
         targetRow.style.borderTop = '3px solid #3b82f6';
+    } else {
+        touchTargetElement = null;
     }
     
     const windowHeight = window.innerHeight;
@@ -3059,9 +3197,16 @@ async function handleTouchEnd(e) {
         header.style.border = '';
     });
     
+    const zone = document.getElementById('loose-items-drop-zone');
+    if (zone) {
+        zone.style.backgroundColor = '';
+        zone.style.border = '';
+    }
+    
     const touch = e.changedTouches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const sectionHeader = elementBelow ? elementBelow.closest('.section-header') : null;
+    const looseItemsZone = elementBelow ? elementBelow.closest('#loose-items-drop-zone') : null;
     
     if (sectionHeader) {
         const sectionName = sectionHeader.getAttribute('data-section-name');
@@ -3100,7 +3245,83 @@ async function handleTouchEnd(e) {
         return;
     }
     
+    if (touchTargetElement === 'loose-items' || (looseItemsZone && !elementBelow.closest('.item-row'))) {
+        const itemId = draggedItemElement.getAttribute('data-item-id');
+        
+        const response = await fetch(`/api/lists/${listId}/sections`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                item_id: itemId,
+                section_name: ''
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showModal('✓ Item moved to loose items', 'success');
+            
+            const listResponse = await fetch(`/api/lists/${listId}`);
+            const listData = await listResponse.json();
+            
+            if (listData.success) {
+                rebuildItemsList(listData.items, listData.empty_sections || []);
+                reattachMoveEventListeners();
+            }
+        } else {
+            showModal(`✗ ${result.message}`, 'error');
+        }
+        
+        draggedItemElement = null;
+        touchTargetElement = null;
+        return;
+    }
+    
     if (!touchTargetElement || draggedItemElement === touchTargetElement) {
+        draggedItemElement = null;
+        touchTargetElement = null;
+        return;
+    }
+    
+    const draggedItemId = draggedItemElement.getAttribute('data-item-id');
+    const targetSection = touchTargetElement.getAttribute('data-section') || '';
+    const draggedSection = draggedItemElement.getAttribute('data-section') || '';
+    
+    if (targetSection !== draggedSection) {
+        const sectionResponse = await fetch(`/api/lists/${listId}/sections`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                item_id: draggedItemId,
+                section_name: targetSection
+            })
+        });
+        
+        const sectionResult = await sectionResponse.json();
+        
+        if (!sectionResult.success) {
+            showModal(`✗ ${sectionResult.message}`, 'error');
+            draggedItemElement = null;
+            touchTargetElement = null;
+            return;
+        }
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+            reattachMoveEventListeners();
+            showModal('✓ Item moved to different section', 'success');
+        }
+        
         draggedItemElement = null;
         touchTargetElement = null;
         return;

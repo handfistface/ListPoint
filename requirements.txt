@@ -1,0 +1,8 @@
+flask
+flask_login
+flask_wtf
+bson
+stripe
+replit
+replit.object-storage
+email_validator
