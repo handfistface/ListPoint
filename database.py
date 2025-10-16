@@ -564,7 +564,7 @@ class Database:
         if not item_found:
             return False, 'Item not found'
         
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
         
         empty_sections = list_doc.get('empty_sections', [])
         if section_name in empty_sections:
@@ -599,7 +599,7 @@ class Database:
         if not item_found:
             return False, 'Item not found'
         
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -630,7 +630,7 @@ class Database:
         if not updated:
             return False, 'Section not found'
         
-        sorted_items = self._sort_items_with_sections(items)
+        sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
