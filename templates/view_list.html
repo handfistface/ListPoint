@@ -1806,7 +1806,7 @@ function rebuildItemsList(items, emptySections = []) {
             const checked = item.checked ? 'checked' : '';
             const quantityVisible = item.quantity > 1 ? '' : 'invisible';
             const escapedItemText = escapeHtml(item.text);
-            const escapedItemSection = escapeHtml(item.section);
+            const escapedItemSection = item.section ? escapeHtml(item.section) : '';
             const jsSafeItemId = escapeJs(item._id);
             
             html += `<div class="flex items-center justify-between p-3 rounded item-row ${checkedClass} ${stripeClass}" style="cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;" data-item-id="${escapeHtml(item._id)}" data-item-text="${escapedItemText}" data-checked="${item.checked}" data-quantity="${item.quantity}" data-section="${escapedItemSection}" onclick="deleteItemByRow('${jsSafeItemId}', event)">`;
