@@ -375,7 +375,7 @@ class Database:
             if item_id in item_dict:
                 item_dict[item_id]['order'] = order
         
-        reordered_items = sorted(item_dict.values(), key=lambda x: x.get('order', 0))
+        reordered_items = self._sort_items_with_sections(list(item_dict.values()), is_ordered=True)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
