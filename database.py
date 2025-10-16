@@ -679,24 +679,25 @@ class Database:
         items = list_doc.get('items', [])
         item_found = False
         
-        filtered_items = []
         for item in items:
             if str(item['_id']) == str(item_id):
+                item['section'] = section_name
                 item_found = True
-            else:
-                filtered_items.append(item)
+                break
         
         if not item_found:
             return False, 'Item not found'
         
+        sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
+        
         empty_sections = list_doc.get('empty_sections', [])
-        if section_name not in empty_sections:
-            empty_sections.append(section_name)
+        if section_name in empty_sections:
+            empty_sections.remove(section_name)
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
             {'$set': {
-                'items': filtered_items,
+                'items': sorted_items,
                 'empty_sections': empty_sections,
                 'updated_at': datetime.utcnow()
             }}
