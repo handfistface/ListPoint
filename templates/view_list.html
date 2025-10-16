@@ -2517,10 +2517,10 @@ async function handleDrop(e) {
     
     const draggedItemId = draggedItemElement.getAttribute('data-item-id');
     const targetItemId = targetRow.getAttribute('data-item-id');
-    const targetSection = targetRow.getAttribute('data-section');
-    const draggedSection = draggedItemElement.getAttribute('data-section');
+    const targetSection = targetRow.getAttribute('data-section') || '';
+    const draggedSection = draggedItemElement.getAttribute('data-section') || '';
     
-    if (targetSection && targetSection !== draggedSection) {
+    if (targetSection !== draggedSection) {
         const response = await fetch(`/api/lists/${listId}/sections`, {
             method: 'POST',
             headers: {
@@ -2539,6 +2539,16 @@ async function handleDrop(e) {
             showModal(`✗ ${result.message}`, 'error');
             return false;
         }
+        
+        const listResponse = await fetch(`/api/lists/${listId}`);
+        const listData = await listResponse.json();
+        
+        if (listData.success) {
+            rebuildItemsList(listData.items, listData.empty_sections || []);
+            reattachMoveEventListeners();
+        }
+        
+        return false;
     }
     
     const allItems = Array.from(document.querySelectorAll('.item-row'));
