@@ -555,16 +555,22 @@ class Database:
         items = list_doc.get('items', [])
         item_found = False
         
+        print(f"[DEBUG] create_section: list_id={list_id}, item_id={item_id}, section_name={section_name}")
+        print(f"[DEBUG] Total items before: {len(items)}")
+        
         for item in items:
             if str(item['_id']) == str(item_id):
                 item['section'] = section_name
                 item_found = True
+                print(f"[DEBUG] Found item: {item.get('text')}, assigned section: {section_name}")
                 break
         
         if not item_found:
+            print(f"[DEBUG] Item not found: {item_id}")
             return False, 'Item not found'
         
         sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
+        print(f"[DEBUG] Total items after sorting: {len(sorted_items)}")
         
         empty_sections = list_doc.get('empty_sections', [])
         if section_name in empty_sections:
@@ -579,6 +585,7 @@ class Database:
             }}
         )
         
+        print(f"[DEBUG] Database updated successfully")
         return True, 'Section created successfully'
     
     def remove_item_from_section(self, list_id, item_id):
