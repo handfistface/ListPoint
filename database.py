@@ -371,11 +371,19 @@ class Database:
         items = list_doc.get('items', [])
         item_dict = {str(item['_id']): item for item in items}
         
+        print(f"[DEBUG reorder_items] Before reorder:")
+        for item in items:
+            print(f"  - {item.get('text')}: section={item.get('section')}, order={item.get('order')}")
+        
         for item_id, order in item_orders.items():
             if item_id in item_dict:
                 item_dict[item_id]['order'] = order
         
         reordered_items = self._sort_items_with_sections(list(item_dict.values()), is_ordered=True)
+        
+        print(f"[DEBUG reorder_items] After reorder:")
+        for item in reordered_items:
+            print(f"  - {item.get('text')}: section={item.get('section')}, order={item.get('order')}")
         
         self.db.lists.update_one(
             {'_id': ObjectId(list_id)},
@@ -562,16 +570,23 @@ class Database:
         items = list_doc.get('items', [])
         item_found = False
         
+        print(f"[DEBUG create_section] item_id={item_id}, section_name={section_name}")
+        
         for item in items:
             if str(item['_id']) == str(item_id):
                 item['section'] = section_name
                 item_found = True
+                print(f"[DEBUG create_section] Assigned section '{section_name}' to item '{item.get('text')}'")
                 break
         
         if not item_found:
+            print(f"[DEBUG create_section] Item not found!")
             return False, 'Item not found'
         
         sorted_items = self._sort_items_with_sections(items, list_doc.get('is_ordered', False))
+        print(f"[DEBUG create_section] After sorting: {len(sorted_items)} items")
+        for item in sorted_items:
+            print(f"  - {item.get('text')}: section={item.get('section')}, order={item.get('order')}")
         
         empty_sections = list_doc.get('empty_sections', [])
         if section_name in empty_sections:
@@ -586,6 +601,7 @@ class Database:
             }}
         )
         
+        print(f"[DEBUG create_section] Saved to database")
         return True, 'Section created successfully'
     
     def remove_item_from_section(self, list_id, item_id):
